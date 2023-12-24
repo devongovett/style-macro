@@ -22,15 +22,35 @@ type Style<T extends Theme> = {
 
 type StyleValue<V extends string | number, T extends Theme> = V | Conditional<V, T>;
 type Condition<T extends Theme> = keyof T['conditions'] & string;
-type Conditional<V extends string | number, T extends Theme> = {default?: StyleValue<V, T>} & {
-  [name in Condition<T>]?: StyleValue<V, T>
-} & {[name: string]: StyleValue<V, T>};
+type Conditional<V extends string | number, T extends Theme> = {
+  [name in Condition<T> | 'default' | (string & {})]?: StyleValue<V, T>
+};
 
-export function createTheme<T extends Theme>(theme: T): (style: Style<T>) => Function {
+type RecursiveConditions<T extends Theme, C extends Conditional<any, any>> = {
+  [Name in keyof C]: 
+    Name extends (keyof T['conditions'] | 'default') 
+      ? never 
+      : C[Name] extends Conditional<any, any> 
+        ? Name | RecursiveConditions<T, C[Name]> 
+        : Name
+}[keyof C];
+
+type ExtractConditionals<T extends Theme, S extends Style<any>> = {
+  [Name in keyof S]: S[Name] extends Conditional<any, any> ? RecursiveConditions<T, S[Name]> : never
+}[keyof S];
+
+type RuntimeConditionsObject<T extends Theme, S extends Style<T>> = {
+  [Name in ExtractConditionals<T, S>]?: boolean
+};
+
+type RuntimeStyleFunction<T extends Theme, S extends Style<T>> = (props: RuntimeConditionsObject<T, S>) => string;
+type StyleFunction<T extends Theme> = <S extends Style<T>>(style: S) => RuntimeStyleFunction<T, S>;
+
+export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   let themePropertyKeys = Object.keys(theme.properties);
   let themeConditionKeys = Object.keys(theme.conditions);
 
-  return function style(style: Style<T>) {
+  return function style<S extends Style<T>>(style: S) {
     let css = '';
     let js = 'let rules = "";\n';
     let printedRules = new Set<string>();
@@ -52,7 +72,7 @@ export function createTheme<T extends Theme>(theme: T): (style: Style<T>) => Fun
       content: css
     });
 
-    return new Function('props', js);
+    return new Function('props', js) as RuntimeStyleFunction<T, S>;
   }
 
   function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<string | number, T>) {
