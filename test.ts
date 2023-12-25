@@ -1,29 +1,29 @@
-import {style} from './style-macro.ts' with {type: 'macro'};
+import {style} from './default-theme.ts' with {type: 'macro'};
 
 const focusRing = style({
-  // outlineStyle: {
-  //   default: 'none',
-  //   isFocusVisible: 'solid'
-  // },
+  outlineStyle: {
+    default: 'none',
+    isFocusVisible: 'solid'
+  },
   outlineColor: {
     default: 'blue-600',
     forcedColors: 'Highlight'
   },
-  // outlineWidth: 2,
-  // outlineOffset: 2
+  outlineWidth: 2,
+  outlineOffset: 2
 });
 
 console.log(style({
-  // w: 5,
-  // h: 5,
+  width: 5,
+  height: 5,
+  borderRadius: 'md',
   // flexShrink: 0,
-  // rounded: 'md',
-  // display: 'flex',
-  // items: 'center',
-  // justify: 'center',
-  // border: 2,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderWidth: 2,
   // transition: 'all',
-  background: {
+  backgroundColor: {
     default: 'white',
     dark: 'zinc-900',
     isSelected: '--color'

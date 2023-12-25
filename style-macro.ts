@@ -2,7 +2,7 @@
 //
 
 interface PropertyValueMap {
-  [name: string]: string
+  [name: string | number]: string
 }
 
 interface Theme {
@@ -17,7 +17,7 @@ interface Theme {
 // type PropertyValue<T extends PropertyFunction> = T extends (value: infer P) => string ? P : never;
 
 type Style<T extends Theme> = {
-  [Name in keyof T['properties']]?: StyleValue<(keyof T['properties'][Name] & string) | `--${string}`, T>
+  [Name in keyof T['properties']]?: StyleValue<(keyof T['properties'][Name] & (string | number)) | `--${string}`, T>
 };
 
 type StyleValue<V extends string | number, T extends Theme> = V | Conditional<V, T>;
@@ -64,8 +64,8 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     }
 
     js += 'return rules;';
-    console.log(css)
-    console.log(js);
+    // console.log(css)
+    // console.log(js);
 
     this.addAsset({
       type: 'css',
@@ -84,7 +84,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
           if (condition !== 'default') {
             c = c.concat(condition);
           }
-          rules.push(compileCondition(condition, compileValue(c, property, value[condition])));
+          rules.push(compileCondition(condition, compileValue(c, property, value[condition]!)));
         }
       }
 
@@ -126,7 +126,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
 
   function compileRule(conditions: Condition<T>[], property: string, value: string | number): Rule {
     // let prelude = `.${appendPrefix(conditions.join('-'), property)}-${value}`;
-    let prelude = '.' + conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('') + generateName(themePropertyKeys.indexOf(property));
+    let prelude = '.' + conditions.map((c, i) => generateName(themeConditionKeys.indexOf(c), i === 0)).join('') + generateName(themePropertyKeys.indexOf(property), conditions.length === 0);
     if (property in theme.properties) {
       if (typeof value === 'string' && value.startsWith('--')) {
         prelude += value;
@@ -149,73 +149,6 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   }
 }
 
-// const color = ['white', 'Highlight', 'HighlightText', 'GrayText', 'Mark'];
-const color = {
-  white: 'white',
-  Highlight: 'Highlight',
-  HighlightText: 'HighlightText',
-  GrayText: 'GrayText',
-  Mark: 'Mark',
-  'gray-100': 'var(--gray-100)',
-  'gray-200': 'var(--gray-200)',
-  'gray-300': 'var(--gray-300)',
-  'gray-400': 'var(--gray-400)',
-  'gray-500': 'var(--gray-500)',
-  'gray-600': 'var(--gray-600)',
-  'gray-700': 'var(--gray-700)',
-  'gray-800': 'var(--gray-800)',
-  'gray-900': 'var(--gray-900)',
-  'slate-100': 'var(--slate-100)',
-  'slate-200': 'var(--slate-200)',
-  'slate-300': 'var(--slate-300)',
-  'slate-400': 'var(--slate-400)',
-  'slate-500': 'var(--slate-500)',
-  'slate-600': 'var(--slate-600)',
-  'slate-700': 'var(--slate-700)',
-  'slate-800': 'var(--slate-800)',
-  'slate-900': 'var(--slate-900)',
-  'zinc-100': 'var(--zinc-100)',
-  'zinc-200': 'var(--zinc-200)',
-  'zinc-300': 'var(--zinc-300)',
-  'zinc-400': 'var(--zinc-400)',
-  'zinc-500': 'var(--zinc-500)',
-  'zinc-600': 'var(--zinc-600)',
-  'zinc-700': 'var(--zinc-700)',
-  'zinc-800': 'var(--zinc-800)',
-  'zinc-900': 'var(--zinc-900)',
-  'red-100': 'var(--red-100)',
-  'red-200': 'var(--red-200)',
-  'red-300': 'var(--red-300)',
-  'red-400': 'var(--red-400)',
-  'red-500': 'var(--red-500)',
-  'red-600': 'var(--red-600)',
-  'red-700': 'var(--red-700)',
-  'red-800': 'var(--red-800)',
-  'red-900': 'var(--red-900)',
-  'blue-100': 'var(--blue-100)',
-  'blue-200': 'var(--blue-200)',
-  'blue-300': 'var(--blue-300)',
-  'blue-400': 'var(--blue-400)',
-  'blue-500': 'var(--blue-500)',
-  'blue-600': 'var(--blue-600)',
-  'blue-700': 'var(--blue-700)',
-  'blue-800': 'var(--blue-800)',
-  'blue-900': 'var(--blue-900)',
-};
-
-export const style = createTheme({
-  properties: {
-    background: color,
-    borderColor: color,
-    outlineColor: color,
-    '--color': color
-  },
-  conditions: {
-    dark: '@media (prefers-color-scheme: dark)',
-    forcedColors: '@media (forced-colors: active)'
-  }
-});
-
 interface Rule {
   prelude: string,
   condition: string,
@@ -230,8 +163,7 @@ function appendPrefix(prefix: string, value: string) {
   return (prefix ? prefix + '-' : '') + value;
 }
 
-function generateName(index: number) {
-  console.log(index)
+function generateName(index: number, atStart = false) {
   if (index < 26) {
     // lower case letters
     return String.fromCharCode(index + 97);
@@ -244,8 +176,20 @@ function generateName(index: number) {
 
   if (index < 62) {
     // numbers
-    return String.fromCharCode((index - 52) + 48);
+    let res = String.fromCharCode((index - 52) + 48);
+    if (atStart) {
+      res = '_' + res;
+    }
+    return res;
   }
+
+  if (index === 62) {
+    return '-';
+  }
+
+  return '_' + generateName(index - 62);
+
+  console.log(index)
 }
 
 function printRule(rule: Rule, printedRules: Set<string>, indent = ''): string {
