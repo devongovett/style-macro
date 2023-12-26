@@ -315,6 +315,26 @@ const inset = {
   full: '100%',
 };
 
+const borderWidth = {
+  0: '0px',
+  1: '1px',
+  2: '2px',
+  4: '4px',
+  8: '8px',
+};
+
+const radius = {
+  none: '0px',
+  sm: '0.125rem',
+  DEFAULT: '0.25rem',
+  md: '0.375rem',
+  lg: '0.5rem',
+  xl: '0.75rem',
+  '2xl': '1rem',
+  '3xl': '1.5rem',
+  full: '9999px',
+};
+
 function identity<T extends string>(keys: T[]): Record<T, T> {
   return Object.fromEntries(keys.map(k => [k, k])) as Record<T, T>;
 }
@@ -325,9 +345,18 @@ export const style = createTheme({
     color: color,
     backgroundColor: color,
     borderColor: color,
+    borderStartColor: color,
+    borderEndColor: color,
+    borderTopColor: color,
+    borderBottomColor: color,
     outlineColor: color,
     textDecorationColor: color,
     accentColor: color,
+    caretColor: color,
+    fill: {
+      none: 'none',
+      ...color
+    },
     stroke: {
       none: 'none',
       ...color
@@ -335,9 +364,14 @@ export const style = createTheme({
     '--color': color,
 
     // dimensions
-    borderSpacing: spacing,
-    // flexBasis
+    borderSpacing: spacing, // TODO: separate x and y
+    flexBasis: {
+      auto: 'auto',
+      ...spacing
+    },
     gap: spacing,
+    rowGap: spacing,
+    columnGap: spacing,
     height: sizing,
     width: sizing,
     minHeight: {
@@ -391,15 +425,21 @@ export const style = createTheme({
       prose: '65ch',
       // breakpoints
     },
-    borderWidth: {
-      0: '0px',
-      1: '1px',
-      2: '2px',
-      4: '4px',
-      8: '8px',
+    borderWidth,
+    borderStartWidth: borderWidth,
+    borderEndWidth: borderWidth,
+    borderTopWidth: borderWidth,
+    borderBottomWidth: borderWidth,
+    borderXWidth: borderWidth,
+    borderYWidth: borderWidth,
+    borderStyle: identity(['solid', 'dashed', 'dotted', 'double', 'hidden', 'none'] as const),
+    strokeWidth: {
+      0: '0',
+      1: '1',
+      2: '2',
     },
     margin,
-    marginStart: margin,
+    marginStart: margin, // marginInlineStart
     marginEnd: margin,
     marginTop: margin,
     marginBottom: margin,
@@ -429,20 +469,21 @@ export const style = createTheme({
       '3/4': '75%',
       full: '100%',
     },
-    position: {
-      absolute: 'absolute',
-      fixed: 'fixed',
-      relative: 'relative',
-      sticky: 'sticky',
-      static: 'static'
-    },
+    // rotate, skew, scale
+    position: identity(['absolute', 'fixed', 'relative', 'sticky', 'static'] as const),
     inset,
-    insetInlineStart: inset,
-    insetInlienEnd: inset,
+    insetInlineStart: inset, // insetStart
+    insetInlineEnd: inset, // insetEnd
+    // insetX, insetY
     top: inset,
     left: inset,
     bottom: inset,
     right: inset,
+    aspectRatio: {
+      auto: 'auto',
+      square: '1 / 1',
+      video: '16 / 9'
+    },
 
     // text
     fontFamily: {
@@ -477,6 +518,7 @@ export const style = createTheme({
       black: '900'
     },
     fontStyle: identity(['normal', 'italic'] as const),
+    // fontVariantNumeric: 
     letterSpacing: {
       tighter: '-0.05em',
       tight: '-0.025em',
@@ -502,10 +544,37 @@ export const style = createTheme({
       10: '2.5rem',
     },
     listStyleType: identity(['none', 'dist', 'decimal'] as const),
+    listStylePosition: identity(['inside', 'outside'] as const),
     textTransform: identity(['uppercase', 'lowercase', 'capitalize', 'none'] as const),
     textAlign: identity(['start', 'center', 'end', 'justify'] as const),
     verticalAlign: identity(['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super'] as const),
     textDecoration: identity(['underline', 'overline', 'line-through', 'none'] as const),
+    textDecorationStyle: identity(['solid', 'double', 'dotted', 'dashed', 'wavy'] as const),
+    textDecorationThickness: {
+      auto: 'auto',
+      'from-font': 'from-font',
+      0: '0px',
+      1: '1px',
+      2: '2px',
+      4: '4px',
+      8: '8px',
+    },
+    textUnderlineOffset: {
+      auto: 'auto',
+      0: '0px',
+      1: '1px',
+      2: '2px',
+      4: '4px',
+      8: '8px',
+    },
+    textOverflow: identity(['ellipsis', 'clip'] as const),
+    // truncate
+    // lineClamp
+    hyphens: identity(['none', 'manual', 'auto'] as const),
+    whitespace: identity(['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'break-spaces'] as const),
+    textWrap: identity(['wrap', 'nowrap', 'balance', 'pretty'] as const),
+    wordBreak: identity(['normal', 'break-all', 'keep-all'] as const), // also overflowWrap??
+    boxDecorationBreak: identity(['slice', 'clone'] as const),
     
     // effects
     boxShadow: {
@@ -518,18 +587,23 @@ export const style = createTheme({
       inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
       none: 'none',
     },
-    borderRadius: {
-      none: '0px',
-      sm: '0.125rem',
-      DEFAULT: '0.25rem',
-      md: '0.375rem',
-      lg: '0.5rem',
-      xl: '0.75rem',
-      '2xl': '1rem',
-      '3xl': '1.5rem',
-      full: '9999px',
-    },
+    borderRadius: radius,
+    borderTopStartRadius: radius,
+    borderTopEndRadius: radius,
+    borderBottomStartRadius: radius,
+    borderBottomEndRadius: radius,
+    // borderTopRadius, borderBottomRadius, borderStartRadius, borderEndRadius
     forcedColorAdjust: identity(['auto', 'none'] as const),
+    backgroundPosition: identity(['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const),
+    backgroundSize: identity(['auto', 'cover', 'contain'] as const),
+    backgroundAttachment: identity(['fixed', 'local', 'scroll'] as const),
+    backgroundClip: identity(['border-box', 'padding-box', 'content-box', 'text'] as const),
+    backgroundRepeat: identity(['repeat', 'no-repeat', 'repeat-x', 'repeat-y', 'round', 'space'] as const),
+    backgroundOrigin: identity(['border-box', 'padding-box', 'content-box'] as const),
+    backgroundBlendMode: identity(['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'] as const),
+    mixBlendMode: identity(['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-darker', 'plus-lighter'] as const),
+    // opacity
+    // filter, backdropFilter
 
     outlineStyle: identity(['none', 'solid', 'dashed', 'dotted', 'double'] as const),
     outlineOffset: {
@@ -547,13 +621,101 @@ export const style = createTheme({
       8: '8px',
     },
 
-    display: identity(['block', 'inline-block', 'inline', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'list-item', 'none', 'table', /* ... */] as const),
+    // transition
+
+    // layout
+    display: identity(['block', 'inline-block', 'inline', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'list-item', 'none'] as const), // tables?
+    alignContent: identity(['normal', 'center', 'start', 'end', 'space-between', 'space-around', 'space-evenly', 'baseline', 'stretch'] as const),
     alignItems: identity(['start', 'end', 'center', 'baseline', 'stretch'] as const),
-    justifyContent: identity(['normal', 'start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch'] as const)
+    justifyContent: identity(['normal', 'start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch'] as const),
+    justifyItems: identity(['start', 'end', 'center', 'stretch'] as const),
+    placeContent: identity(['center', 'start', 'end', 'space-betwen', 'space-around', 'space-evenly', 'baseline', 'stretch'] as const),
+    placeItems: identity(['start', 'end', 'center', 'baseline', 'stretch'] as const),
+    placeSelf: identity(['auto', 'start', 'end', 'center', 'stretch'] as const),
+    alignSelf: identity(['auto', 'start', 'end', 'center', 'stretch', 'baseline'] as const),
+    justifySelf: identity(['auto', 'start', 'end', 'center', 'stretch'] as const),
+    flexDirection: identity(['row', 'column', 'row-reverse', 'column-reverse'] as const),
+    flexWrap: identity(['wrap', 'wrap-reverse', 'nowrap'] as const),
+    // flex, flexShrink, flexGrow
+    // gridColumn, gridRow
+    gridAutoColumns: identity(['row', 'column', 'dense', 'row dense', 'column dense'] as const),
+    gridAutoRows: {
+      auto: 'auto',
+      'min-content': 'min-content',
+      'max-content': 'max-content',
+      fr: 'minmax(0, 1fr)'
+    },
+    // gridTemplateColumns, gridTemplateRows
+    float: identity(['inline-start', 'inline-end', 'right', 'left', 'none'] as const),
+    clear: identity(['inline-start', 'inline-end', 'left', 'right', 'both', 'none'] as const),
+    boxSizing: identity(['border-box', 'content-box'] as const),
+    tableLayout: identity(['auto', 'fixed'] as const),
+    captionSide: identity(['top', 'bottom'] as const),
+    borderCollapse: identity(['collapse', 'separate'] as const),
+    columns: {
+      auto: 'auto',
+      1: '1',
+      2: '2',
+      3: '3',
+      4: '4',
+      5: '5',
+      6: '6',
+      7: '7',
+      8: '8',
+      9: '9',
+      10: '10',
+      11: '11',
+      12: '12',
+      '3xs': '16rem',
+      '2xs': '18rem',
+      xs: '20rem',
+      sm: '24rem',
+      md: '28rem',
+      lg: '32rem',
+      xl: '36rem',
+      '2xl': '42rem',
+      '3xl': '48rem',
+      '4xl': '56rem',
+      '5xl': '64rem',
+      '6xl': '72rem',
+      '7xl': '80rem',
+    },
+    breakBefore: identity(['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const),
+    breakInside: identity(['auto', 'avoid', 'avoid-page', 'avoid-column'] as const),
+    breakAfter: identity(['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const),
+    overflow: identity(['auto', 'hidden', 'clip', 'visible', 'scroll'] as const),
+    overflowX: identity(['auto', 'hidden', 'clip', 'visible', 'scroll'] as const),
+    overflowY: identity(['auto', 'hidden', 'clip', 'visible', 'scroll'] as const),
+    overscrollBehavior: identity(['auto', 'contain', 'none'] as const),
+    overscrollBehaviorX: identity(['auto', 'contain', 'none'] as const),
+    overscrollBehaviorY: identity(['auto', 'contain', 'none'] as const),
+    scrollBehavior: identity(['auto', 'smooth'] as const),
+
+    pointerEvents: identity(['none', 'auto'] as const),
+    touchAction: identity(['auto', 'none', 'pan-x', 'pan-y', 'manipulation', 'pinch-zoom'] as const),
+    userSelect: identity(['none', 'text', 'all', 'auto'] as const),
+    visibility: identity(['visible', 'hidden', 'collapse'] as const),
+    isolation: identity(['isolate', 'auto'] as const),
+    transformOrigin: identity(['center', 'top', 'top right', 'right', 'bottom right', 'bottom', 'bottom left', 'left', 'top right'] as const),
+    cursor: identity(['auto', 'default', 'pointer', 'wait', 'text', 'move', 'help', 'not-allowed', 'none', 'context-menu', 'progress', 'cell', 'crosshair', 'vertical-text', 'alias', 'copy', 'no-drop', 'grab', 'grabbing', 'all-scroll', 'col-resize', 'row-resize', 'n-resize', 'e-resize', 's-resize', 'w-resize', 'ne-resize', 'nw-resize', 'se-resize', 'ew-resize', 'ns-resize', 'nesw-resize', 'nwse-resize', 'zoom-in', 'zoom-out'] as const),
+    resize: identity(['none', 'vertical', 'horizontal', 'both'] as const),
+    scrollSnapType: identity(['x', 'y', 'both', 'x mandatory', 'y mandatory', 'both mandatory'] as const),
+    scrollSnapAlign: identity(['start', 'end', 'center', 'none'] as const),
+    scrollSnapStop: identity(['normal', 'always'] as const),
+    appearance: identity(['none', 'auto'] as const),
+    objectFit: identity(['contain', 'cover', 'fill', 'none', 'scale-down'] as const),
+    objectPosition: identity(['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const),
+    willChange: identity(['auto', 'scroll-position', 'contents', 'transform'] as const),
+    // zIndex, order
   },
   conditions: {
     dark: '@media (prefers-color-scheme: dark)',
-    forcedColors: '@media (forced-colors: active)'
+    forcedColors: '@media (forced-colors: active)',
+    sm: '@media (min-width: 640px)',
+    md: '@media (min-width: 768px)',
+    lg: '@media (min-width: 1024px)',
+    xl: '@media (min-width: 1280px)',
+    '2xl': '@media (min-width: 1536px)'
   }
 });
 
