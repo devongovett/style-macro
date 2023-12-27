@@ -88,12 +88,14 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     let css = '';
     let js = 'let rules = "";\n';
     let printedRules = new Set<string>();
-    for (let key in style) {
-      let value = style[key]!;
-      let rules = compileValue([], key, value);
-      js += printJS(rules) + '\n';
-      for (let rule of rules) {
-        css += printRule(rule, printedRules) + '\n\n';
+    for (let key in theme.properties) {
+      if (key in style) {
+        let value = style[key]!;
+        let rules = compileValue([], key, value);
+        js += printJS(rules) + '\n';
+        for (let rule of rules) {
+          css += printRule(rule, printedRules) + '\n\n';
+        }
       }
     }
 
@@ -172,7 +174,6 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
         let v = theme.properties[property];
         if (typeof v === 'function') {
           let [val, p] = v.getValue(value);
-          console.log(value, val, p)
           prelude += p;
           let obj = v(val);
           for (let key in obj) {
