@@ -1,6 +1,7 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import tailwindColors from 'tailwindcss/colors';
-import { createTheme } from './style-macro.ts';
+import { createTheme, property } from './style-macro.ts';
+import type * as CSS from 'csstype';
 
 const color = {
   transparent: 'transparent',
@@ -321,7 +322,7 @@ const borderWidth = {
   2: '2px',
   4: '4px',
   8: '8px',
-};
+} as const;
 
 const radius = {
   none: '0px',
@@ -335,9 +336,19 @@ const radius = {
   full: '9999px',
 };
 
-function identity<T extends string>(keys: T[]): Record<T, T> {
-  return Object.fromEntries(keys.map(k => [k, k])) as Record<T, T>;
-}
+type GridTrack = 'none' | 'subgrid' | (string & {}) | GridTrackSize[];
+type GridTrackSize = 'auto' | 'min-content' | 'max-content' | `${number}fr` | `minmax(${string}, ${string})` | keyof typeof spacing;
+
+let gridTrack = (value: GridTrack) => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return value.map(v => gridTrackSize(v)).join(' ');
+};
+
+let gridTrackSize = (value: GridTrackSize) => {
+  return value in spacing ? spacing[value] : value
+};
 
 export const style = createTheme({
   properties: {
@@ -426,36 +437,44 @@ export const style = createTheme({
       // breakpoints
     },
     borderWidth,
-    borderStartWidth: borderWidth,
-    borderEndWidth: borderWidth,
+    borderStartWidth: property(value => ({borderInlineStartWidth: value}), borderWidth),
+    borderEndWidth: property(value => ({borderInlineEndWidth: value}), borderWidth),
     borderTopWidth: borderWidth,
     borderBottomWidth: borderWidth,
-    borderXWidth: borderWidth,
-    borderYWidth: borderWidth,
-    borderStyle: identity(['solid', 'dashed', 'dotted', 'double', 'hidden', 'none'] as const),
+    borderXWidth: property(value => ({borderInlineWidth: value}), borderWidth),
+    borderYWidth: property(value => ({borderBlockWidth: value}), borderWidth),
+    borderStyle: ['solid', 'dashed', 'dotted', 'double', 'hidden', 'none'] as const,
     strokeWidth: {
       0: '0',
       1: '1',
       2: '2',
     },
     margin,
-    marginStart: margin, // marginInlineStart
-    marginEnd: margin,
+    marginX: property(value => ({marginInline: value}), spacing),
+    marginY: property(value => ({marginBlock: value}), spacing),
+    marginStart: property(value => ({marginInlineStart: value}), margin),
+    marginEnd: property(value => ({marginInlineEnd: value}), margin),
     marginTop: margin,
     marginBottom: margin,
     padding: spacing,
-    paddingStart: spacing,
-    paddingEnd: spacing,
+    paddingX: property(value => ({paddingInline: value}), spacing),
+    paddingY: property(value => ({paddingBlock: value}), spacing),
+    paddingStart: property(value => ({paddingInlineStart: value}), spacing),
+    paddingEnd: property(value => ({paddingInlineEnd: value}), spacing),
     paddingTop: spacing,
     paddingBottom: spacing,
     scrollMargin: spacing,
-    scrollMarginStart: spacing,
-    scrollMarginEnd: spacing,
+    scrollMarginX: property(value => ({scrollMarginInline: value}), spacing),
+    scrollMarginY: property(value => ({scrollMarginBlock: value}), spacing),
+    scrollMarginStart: property(value => ({scrollMarginInlineStart: value}), spacing),
+    scrollMarginEnd: property(value => ({scrollMarginInlineEnd: value}), spacing),
     scrollMarginTop: spacing,
     scrollMarginBottom: spacing,
     scrollPadding: spacing,
-    scrollPaddingStart: spacing,
-    scrollPaddingEnd: spacing,
+    scrollPaddingX: property(value => ({scrollPaddingInline: value}), spacing),
+    scrollPaddingY: property(value => ({scrollPaddingBlock: value}), spacing),
+    scrollPaddingStart: property(value => ({scrollPaddingInlineStart: value}), spacing),
+    scrollPaddingEnd: property(value => ({scrollPaddingInlineEnd: value}), spacing),
     scrollPaddingTop: spacing,
     scrollPaddingBottom: spacing,
     textIndent: spacing,
@@ -469,12 +488,14 @@ export const style = createTheme({
       '3/4': '75%',
       full: '100%',
     },
-    // rotate, skew, scale
-    position: identity(['absolute', 'fixed', 'relative', 'sticky', 'static'] as const),
+    rotate: property((value: number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn`) => ({rotate: typeof value === 'number' ? `${value}deg` : value})),
+    scale: property((value: number) => ({scale: value})),
+    position: ['absolute', 'fixed', 'relative', 'sticky', 'static'] as const,
     inset,
-    insetInlineStart: inset, // insetStart
-    insetInlineEnd: inset, // insetEnd
-    // insetX, insetY
+    insetX: property(value => ({insetInline: value}), inset),
+    insetY: property(value => ({insetBlock: value}), inset),
+    insetStart: property(value => ({insetInlineStart: value}), inset),
+    insetEnd: property(value => ({insetInlineEnd: value}), inset),
     top: inset,
     left: inset,
     bottom: inset,
@@ -517,8 +538,8 @@ export const style = createTheme({
       extrabold: '800',
       black: '900'
     },
-    fontStyle: identity(['normal', 'italic'] as const),
-    // fontVariantNumeric: 
+    fontStyle: ['normal', 'italic'] as const,
+    // fontVariantNumeric:
     letterSpacing: {
       tighter: '-0.05em',
       tight: '-0.025em',
@@ -543,13 +564,13 @@ export const style = createTheme({
       9: '2.25rem',
       10: '2.5rem',
     },
-    listStyleType: identity(['none', 'dist', 'decimal'] as const),
-    listStylePosition: identity(['inside', 'outside'] as const),
-    textTransform: identity(['uppercase', 'lowercase', 'capitalize', 'none'] as const),
-    textAlign: identity(['start', 'center', 'end', 'justify'] as const),
-    verticalAlign: identity(['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super'] as const),
-    textDecoration: identity(['underline', 'overline', 'line-through', 'none'] as const),
-    textDecorationStyle: identity(['solid', 'double', 'dotted', 'dashed', 'wavy'] as const),
+    listStyleType: ['none', 'dist', 'decimal'] as const,
+    listStylePosition: ['inside', 'outside'] as const,
+    textTransform: ['uppercase', 'lowercase', 'capitalize', 'none'] as const,
+    textAlign: ['start', 'center', 'end', 'justify'] as const,
+    verticalAlign: ['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super'] as const,
+    textDecoration: ['underline', 'overline', 'line-through', 'none'] as const,
+    textDecorationStyle: ['solid', 'double', 'dotted', 'dashed', 'wavy'] as const,
     textDecorationThickness: {
       auto: 'auto',
       'from-font': 'from-font',
@@ -567,15 +588,24 @@ export const style = createTheme({
       4: '4px',
       8: '8px',
     },
-    textOverflow: identity(['ellipsis', 'clip'] as const),
-    // truncate
-    // lineClamp
-    hyphens: identity(['none', 'manual', 'auto'] as const),
-    whitespace: identity(['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'break-spaces'] as const),
-    textWrap: identity(['wrap', 'nowrap', 'balance', 'pretty'] as const),
-    wordBreak: identity(['normal', 'break-all', 'keep-all'] as const), // also overflowWrap??
-    boxDecorationBreak: identity(['slice', 'clone'] as const),
-    
+    textOverflow: ['ellipsis', 'clip'] as const,
+    truncate: property((_value: true) => ({
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    })),
+    lineClamp: property((value: number) => ({
+      overflow: 'hidden',
+      display: '-webkit-box',
+      '-webkit-box-orient': 'vertical',
+      '-webkit-line-clamp': value
+    })),
+    hyphens: ['none', 'manual', 'auto'] as const,
+    whitespace: ['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'break-spaces'] as const,
+    textWrap: ['wrap', 'nowrap', 'balance', 'pretty'] as const,
+    wordBreak: ['normal', 'break-all', 'keep-all'] as const, // also overflowWrap??
+    boxDecorationBreak: ['slice', 'clone'] as const,
+
     // effects
     boxShadow: {
       sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
@@ -588,24 +618,27 @@ export const style = createTheme({
       none: 'none',
     },
     borderRadius: radius,
-    borderTopStartRadius: radius,
-    borderTopEndRadius: radius,
-    borderBottomStartRadius: radius,
-    borderBottomEndRadius: radius,
-    // borderTopRadius, borderBottomRadius, borderStartRadius, borderEndRadius
-    forcedColorAdjust: identity(['auto', 'none'] as const),
-    backgroundPosition: identity(['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const),
-    backgroundSize: identity(['auto', 'cover', 'contain'] as const),
-    backgroundAttachment: identity(['fixed', 'local', 'scroll'] as const),
-    backgroundClip: identity(['border-box', 'padding-box', 'content-box', 'text'] as const),
-    backgroundRepeat: identity(['repeat', 'no-repeat', 'repeat-x', 'repeat-y', 'round', 'space'] as const),
-    backgroundOrigin: identity(['border-box', 'padding-box', 'content-box'] as const),
-    backgroundBlendMode: identity(['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'] as const),
-    mixBlendMode: identity(['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-darker', 'plus-lighter'] as const),
-    // opacity
+    borderTopRadius: property(value => ({borderStartStartRadius: value, borderStartEndRadius: value}), radius),
+    borderBottomRadius: property(value => ({borderEndStartRadius: value, borderEndEndRadius: value}), radius),
+    borderStartRadius: property(value => ({borderStartStartRadius: value, borderEndStartRadius: value}), radius),
+    borderEndRadius: property(value => ({borderStartEndRadius: value, borderEndEndRadius: value}), radius),
+    borderTopStartRadius: property(value => ({borderStartStartRadius: value}), radius),
+    borderTopEndRadius: property(value => ({borderStartEndRadius: value}), radius),
+    borderBottomStartRadius: property(value => ({borderEndStartRadius: value}), radius),
+    borderBottomEndRadius: property(value => ({borderEndEndRadius: value}), radius),
+    forcedColorAdjust: ['auto', 'none'] as const,
+    backgroundPosition: ['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const,
+    backgroundSize: ['auto', 'cover', 'contain'] as const,
+    backgroundAttachment: ['fixed', 'local', 'scroll'] as const,
+    backgroundClip: ['border-box', 'padding-box', 'content-box', 'text'] as const,
+    backgroundRepeat: ['repeat', 'no-repeat', 'repeat-x', 'repeat-y', 'round', 'space'] as const,
+    backgroundOrigin: ['border-box', 'padding-box', 'content-box'] as const,
+    backgroundBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'] as const,
+    mixBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-darker', 'plus-lighter'] as const,
+    opacity: property((value: number) => ({opacity: value})),
     // filter, backdropFilter
 
-    outlineStyle: identity(['none', 'solid', 'dashed', 'dotted', 'double'] as const),
+    outlineStyle: ['none', 'solid', 'dashed', 'dotted', 'double'] as const,
     outlineOffset: {
       0: '0px',
       1: '1px',
@@ -624,34 +657,38 @@ export const style = createTheme({
     // transition
 
     // layout
-    display: identity(['block', 'inline-block', 'inline', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'list-item', 'none'] as const), // tables?
-    alignContent: identity(['normal', 'center', 'start', 'end', 'space-between', 'space-around', 'space-evenly', 'baseline', 'stretch'] as const),
-    alignItems: identity(['start', 'end', 'center', 'baseline', 'stretch'] as const),
-    justifyContent: identity(['normal', 'start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch'] as const),
-    justifyItems: identity(['start', 'end', 'center', 'stretch'] as const),
-    placeContent: identity(['center', 'start', 'end', 'space-betwen', 'space-around', 'space-evenly', 'baseline', 'stretch'] as const),
-    placeItems: identity(['start', 'end', 'center', 'baseline', 'stretch'] as const),
-    placeSelf: identity(['auto', 'start', 'end', 'center', 'stretch'] as const),
-    alignSelf: identity(['auto', 'start', 'end', 'center', 'stretch', 'baseline'] as const),
-    justifySelf: identity(['auto', 'start', 'end', 'center', 'stretch'] as const),
-    flexDirection: identity(['row', 'column', 'row-reverse', 'column-reverse'] as const),
-    flexWrap: identity(['wrap', 'wrap-reverse', 'nowrap'] as const),
-    // flex, flexShrink, flexGrow
-    // gridColumn, gridRow
-    gridAutoColumns: identity(['row', 'column', 'dense', 'row dense', 'column dense'] as const),
-    gridAutoRows: {
-      auto: 'auto',
-      'min-content': 'min-content',
-      'max-content': 'max-content',
-      fr: 'minmax(0, 1fr)'
-    },
-    // gridTemplateColumns, gridTemplateRows
-    float: identity(['inline-start', 'inline-end', 'right', 'left', 'none'] as const),
-    clear: identity(['inline-start', 'inline-end', 'left', 'right', 'both', 'none'] as const),
-    boxSizing: identity(['border-box', 'content-box'] as const),
-    tableLayout: identity(['auto', 'fixed'] as const),
-    captionSide: identity(['top', 'bottom'] as const),
-    borderCollapse: identity(['collapse', 'separate'] as const),
+    display: ['block', 'inline-block', 'inline', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'list-item', 'none'] as const, // tables?
+    alignContent: ['normal', 'center', 'start', 'end', 'space-between', 'space-around', 'space-evenly', 'baseline', 'stretch'] as const,
+    alignItems: ['start', 'end', 'center', 'baseline', 'stretch'] as const,
+    justifyContent: ['normal', 'start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch'] as const,
+    justifyItems: ['start', 'end', 'center', 'stretch'] as const,
+    placeContent: ['center', 'start', 'end', 'space-betwen', 'space-around', 'space-evenly', 'baseline', 'stretch'] as const,
+    placeItems: ['start', 'end', 'center', 'baseline', 'stretch'] as const,
+    placeSelf: ['auto', 'start', 'end', 'center', 'stretch'] as const,
+    alignSelf: ['auto', 'start', 'end', 'center', 'stretch', 'baseline'] as const,
+    justifySelf: ['auto', 'start', 'end', 'center', 'stretch'] as const,
+    flexDirection: ['row', 'column', 'row-reverse', 'column-reverse'] as const,
+    flexWrap: ['wrap', 'wrap-reverse', 'nowrap'] as const,
+    flex: property((value: CSS.Property.Flex) => ({flex: value})),
+    flexShrink: property((value: CSS.Property.FlexShrink) => ({flexShrink: value})),
+    flexGrow: property((value: CSS.Property.FlexGrow) => ({flexGrow: value})),
+    gridColumn: property((value: CSS.Property.GridColumn) => ({gridColumn: value})),
+    gridColumnStart: property((value: CSS.Property.GridColumnStart) => ({gridColumnStart: value})),
+    gridColumnEnd: property((value: CSS.Property.GridColumnEnd) => ({gridColumnEnd: value})),
+    gridRow: property((value: CSS.Property.GridRow) => ({gridRow: value})),
+    gridRowStart: property((value: CSS.Property.GridRowStart) => ({gridRowStart: value})),
+    gridRowEnd: property((value: CSS.Property.GridRowEnd) => ({gridRowEnd: value})),
+    gridAutoFlow: ['row', 'column', 'dense', 'row dense', 'column dense'] as const,
+    gridAutoRows: property((value: GridTrackSize) => ({gridAutoRows: gridTrackSize(value)})),
+    gridAutoColumns: property((value: GridTrackSize) => ({gridAutoRows: gridTrackSize(value)})),
+    gridTemplateColumns: property((value: GridTrack) => ({gridTemplateColumns: gridTrack(value)})),
+    gridTemplateRows: property((value: GridTrack) => ({gridTemplateRows: gridTrack(value)})),
+    float: ['inline-start', 'inline-end', 'right', 'left', 'none'] as const,
+    clear: ['inline-start', 'inline-end', 'left', 'right', 'both', 'none'] as const,
+    boxSizing: ['border-box', 'content-box'] as const,
+    tableLayout: ['auto', 'fixed'] as const,
+    captionSide: ['top', 'bottom'] as const,
+    borderCollapse: ['collapse', 'separate'] as const,
     columns: {
       auto: 'auto',
       1: '1',
@@ -680,33 +717,34 @@ export const style = createTheme({
       '6xl': '72rem',
       '7xl': '80rem',
     },
-    breakBefore: identity(['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const),
-    breakInside: identity(['auto', 'avoid', 'avoid-page', 'avoid-column'] as const),
-    breakAfter: identity(['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const),
-    overflow: identity(['auto', 'hidden', 'clip', 'visible', 'scroll'] as const),
-    overflowX: identity(['auto', 'hidden', 'clip', 'visible', 'scroll'] as const),
-    overflowY: identity(['auto', 'hidden', 'clip', 'visible', 'scroll'] as const),
-    overscrollBehavior: identity(['auto', 'contain', 'none'] as const),
-    overscrollBehaviorX: identity(['auto', 'contain', 'none'] as const),
-    overscrollBehaviorY: identity(['auto', 'contain', 'none'] as const),
-    scrollBehavior: identity(['auto', 'smooth'] as const),
+    breakBefore: ['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const,
+    breakInside: ['auto', 'avoid', 'avoid-page', 'avoid-column'] as const,
+    breakAfter: ['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const,
+    overflow: ['auto', 'hidden', 'clip', 'visible', 'scroll'] as const,
+    overflowX: ['auto', 'hidden', 'clip', 'visible', 'scroll'] as const,
+    overflowY: ['auto', 'hidden', 'clip', 'visible', 'scroll'] as const,
+    overscrollBehavior: ['auto', 'contain', 'none'] as const,
+    overscrollBehaviorX: ['auto', 'contain', 'none'] as const,
+    overscrollBehaviorY: ['auto', 'contain', 'none'] as const,
+    scrollBehavior: ['auto', 'smooth'] as const,
+    order: property((value: number) => ({order: value})),
 
-    pointerEvents: identity(['none', 'auto'] as const),
-    touchAction: identity(['auto', 'none', 'pan-x', 'pan-y', 'manipulation', 'pinch-zoom'] as const),
-    userSelect: identity(['none', 'text', 'all', 'auto'] as const),
-    visibility: identity(['visible', 'hidden', 'collapse'] as const),
-    isolation: identity(['isolate', 'auto'] as const),
-    transformOrigin: identity(['center', 'top', 'top right', 'right', 'bottom right', 'bottom', 'bottom left', 'left', 'top right'] as const),
-    cursor: identity(['auto', 'default', 'pointer', 'wait', 'text', 'move', 'help', 'not-allowed', 'none', 'context-menu', 'progress', 'cell', 'crosshair', 'vertical-text', 'alias', 'copy', 'no-drop', 'grab', 'grabbing', 'all-scroll', 'col-resize', 'row-resize', 'n-resize', 'e-resize', 's-resize', 'w-resize', 'ne-resize', 'nw-resize', 'se-resize', 'ew-resize', 'ns-resize', 'nesw-resize', 'nwse-resize', 'zoom-in', 'zoom-out'] as const),
-    resize: identity(['none', 'vertical', 'horizontal', 'both'] as const),
-    scrollSnapType: identity(['x', 'y', 'both', 'x mandatory', 'y mandatory', 'both mandatory'] as const),
-    scrollSnapAlign: identity(['start', 'end', 'center', 'none'] as const),
-    scrollSnapStop: identity(['normal', 'always'] as const),
-    appearance: identity(['none', 'auto'] as const),
-    objectFit: identity(['contain', 'cover', 'fill', 'none', 'scale-down'] as const),
-    objectPosition: identity(['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const),
-    willChange: identity(['auto', 'scroll-position', 'contents', 'transform'] as const),
-    // zIndex, order
+    pointerEvents: ['none', 'auto'] as const,
+    touchAction: ['auto', 'none', 'pan-x', 'pan-y', 'manipulation', 'pinch-zoom'] as const,
+    userSelect: ['none', 'text', 'all', 'auto'] as const,
+    visibility: ['visible', 'hidden', 'collapse'] as const,
+    isolation: ['isolate', 'auto'] as const,
+    transformOrigin: ['center', 'top', 'top right', 'right', 'bottom right', 'bottom', 'bottom left', 'left', 'top right'] as const,
+    cursor: ['auto', 'default', 'pointer', 'wait', 'text', 'move', 'help', 'not-allowed', 'none', 'context-menu', 'progress', 'cell', 'crosshair', 'vertical-text', 'alias', 'copy', 'no-drop', 'grab', 'grabbing', 'all-scroll', 'col-resize', 'row-resize', 'n-resize', 'e-resize', 's-resize', 'w-resize', 'ne-resize', 'nw-resize', 'se-resize', 'ew-resize', 'ns-resize', 'nesw-resize', 'nwse-resize', 'zoom-in', 'zoom-out'] as const,
+    resize: ['none', 'vertical', 'horizontal', 'both'] as const,
+    scrollSnapType: ['x', 'y', 'both', 'x mandatory', 'y mandatory', 'both mandatory'] as const,
+    scrollSnapAlign: ['start', 'end', 'center', 'none'] as const,
+    scrollSnapStop: ['normal', 'always'] as const,
+    appearance: ['none', 'auto'] as const,
+    objectFit: ['contain', 'cover', 'fill', 'none', 'scale-down'] as const,
+    objectPosition: ['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const,
+    willChange: ['auto', 'scroll-position', 'contents', 'transform'] as const,
+    zIndex: property((value: number) => ({zIndex: value})),
   },
   conditions: {
     dark: '@media (prefers-color-scheme: dark)',
@@ -718,4 +756,3 @@ export const style = createTheme({
     '2xl': '@media (min-width: 1536px)'
   }
 });
-

@@ -1,23 +1,37 @@
-// type PropertyFunction = (value: any) => string;
-//
+import type * as CSS from 'csstype';
 
-interface PropertyValueMap {
-  [name: string | number]: string
+type Value = string | number;
+type PropertyValueMap<T extends Value = Value> = {
+  [name in T]: string
+};
+
+interface PropertyFunction<T> {
+  (value: Value): CSS.Properties,
+  getValue: (value: T) => [Value, string]
 }
 
 interface Theme {
   properties: {
-    [name: string]: PropertyValueMap,
+    [name: string]: PropertyValueMap | PropertyFunction<any> | string[],
   },
   conditions: {
     [name: string]: string
   }
 }
 
-// type PropertyValue<T extends PropertyFunction> = T extends (value: infer P) => string ? P : never;
+type PropertyValue<T> =
+  T extends PropertyFunction<any>
+    ? T['getValue'] extends (value: infer P) => [Value, string]
+      ? P
+      : never
+    : T extends PropertyValueMap
+      ? keyof T
+      : T extends string[]
+        ? T[number]
+        : never;
 
 type Style<T extends Theme> = {
-  [Name in keyof T['properties']]?: StyleValue<(keyof T['properties'][Name] & (string | number)) | `--${string}`, T>
+  [Name in keyof T['properties']]?: StyleValue<PropertyValue<T['properties'][Name]> | `--${string}`, T>
 };
 
 type StyleValue<V extends string | number, T extends Theme> = V | Conditional<V, T>;
@@ -27,11 +41,11 @@ type Conditional<V extends string | number, T extends Theme> = {
 };
 
 type RecursiveConditions<T extends Theme, C extends Conditional<any, any>> = {
-  [Name in keyof C]: 
-    Name extends (keyof T['conditions'] | 'default') 
-      ? never 
-      : C[Name] extends Conditional<any, any> 
-        ? Name | RecursiveConditions<T, C[Name]> 
+  [Name in keyof C]:
+    Name extends (keyof T['conditions'] | 'default')
+      ? never
+      : C[Name] extends Conditional<any, any>
+        ? Name | RecursiveConditions<T, C[Name]>
         : Name
 }[keyof C];
 
@@ -45,6 +59,26 @@ type RuntimeConditionsObject<T extends Theme, S extends Style<T>> = {
 
 type RuntimeStyleFunction<T extends Theme, S extends Style<T>> = (props: RuntimeConditionsObject<T, S>) => string;
 type StyleFunction<T extends Theme> = <S extends Style<T>>(style: S) => RuntimeStyleFunction<T, S>;
+
+export function property<T>(fn: (value: T) => CSS.Properties): PropertyFunction<T>
+export function property<T extends Value>(fn: (value: string) => CSS.Properties, values: PropertyValueMap<T>): PropertyFunction<T>
+export function property<T extends Value>(fn: (value: string) => CSS.Properties, values?: PropertyValueMap<T>): PropertyFunction<T> {
+  let f = fn as PropertyFunction<T>;
+  if (values) {
+    let keys = Object.keys(values);
+    f.getValue = (value) => [values[value], generateName(keys.indexOf(String(value)))];
+  } else {
+    f.getValue = (value) => {
+      let v = Array.isArray(value) ? value.map(v => generateArbitraryValueSelector(String(v))).join('') : generateArbitraryValueSelector(String(value));
+      return [value, v];
+    };
+  }
+  return f;
+}
+
+function generateArbitraryValueSelector(v: string) {
+  return [...v].map(c => generateName(c.charCodeAt(0))).join('');
+}
 
 export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   let themePropertyKeys = Object.keys(theme.properties);
@@ -76,7 +110,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   }
 
   function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<string | number, T>) {
-    if (typeof value === 'object' && value) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
       for (let condition in theme.conditions) {
         if (value[condition] != null) {
@@ -127,26 +161,43 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   function compileRule(conditions: Condition<T>[], property: string, value: string | number): Rule {
     // let prelude = `.${appendPrefix(conditions.join('-'), property)}-${value}`;
     let prelude = '.' + conditions.map((c, i) => generateName(themeConditionKeys.indexOf(c), i === 0)).join('') + generateName(themePropertyKeys.indexOf(property), conditions.length === 0);
+    let p = property.startsWith('--') ? property : kebab(property);
+
+    let body = '';
     if (property in theme.properties) {
       if (typeof value === 'string' && value.startsWith('--')) {
         prelude += value;
-        value = `var(${value})`;
+        body = `${p}: var(${value})`;
       } else {
-        prelude += generateName(Object.keys(theme.properties[property]).indexOf(String(value)));
-        value = theme.properties[property][value];
+        let v = theme.properties[property];
+        if (typeof v === 'function') {
+          let [val, p] = v.getValue(value);
+          console.log(value, val, p)
+          prelude += p;
+          let obj = v(val);
+          for (let key in obj) {
+            body += `${kebab(key)}: ${obj[key]};`
+          }
+        } else if (Array.isArray(v)) {
+          prelude += generateName(v.indexOf(String(value)));
+          body = `${p}: ${value}`;
+        } else {
+          prelude += generateName(Object.keys(theme.properties[property]).indexOf(String(value)));
+          body = `${p}: ${v[value]}`;
+        }
       }
-    }
-
-    if (!property.startsWith('--')) {
-      property = property.replace(/([a-z])([A-Z])/g, (_, a, b) => `${a}-${b.toLowerCase()}`);
     }
 
     return {
       condition: '',
       prelude,
-      body: `${property}: ${value}`
+      body
     };
   }
+}
+
+function kebab(property: string) {
+  return property.replace(/([a-z])([A-Z])/g, (_, a, b) => `${a}-${b.toLowerCase()}`);
 }
 
 interface Rule {
@@ -188,8 +239,6 @@ function generateName(index: number, atStart = false) {
   }
 
   return '_' + generateName(index - 62);
-
-  console.log(index)
 }
 
 function printRule(rule: Rule, printedRules: Set<string>, indent = ''): string {

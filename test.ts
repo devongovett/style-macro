@@ -28,6 +28,9 @@ console.log(style({
     dark: 'zinc-900',
     isSelected: '--color'
   },
+  borderTopRadius: '2xl',
+  opacity: 0.2,
+  gridTemplateColumns: [72, 96],
   borderColor: '--color',
   '--color': {
     default: 'gray-700',
