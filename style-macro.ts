@@ -114,12 +114,13 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<string | number, T>) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
+      if (value.default != null) {
+        rules.push(compileCondition('default', compileValue(conditions, property, value.default)));
+      }
+
       for (let condition in theme.conditions) {
         if (value[condition] != null) {
-          let c = conditions;
-          if (condition !== 'default') {
-            c = c.concat(condition);
-          }
+          let c = conditions.concat(condition);
           rules.push(compileCondition(condition, compileValue(c, property, value[condition]!)));
         }
       }
