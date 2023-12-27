@@ -111,7 +111,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     return new Function('props', js) as RuntimeStyleFunction<T, S>;
   }
 
-  function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<string | number, T>) {
+  function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<Value, T, any>) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
       if (value.default != null) {
@@ -127,7 +127,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
 
       // Runtime conditions.
       for (let condition in value) {
-        if (condition in theme.conditions) {
+        if (condition === 'default' || condition in theme.conditions) {
           continue;
         }
 
@@ -161,7 +161,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     return {prelude: '', condition, body: rules};
   }
 
-  function compileRule(conditions: Condition<T>[], property: string, value: string | number): Rule {
+  function compileRule(conditions: Condition<T>[], property: string, value: Value): Rule {
     // let prelude = `.${appendPrefix(conditions.join('-'), property)}-${value}`;
     let prelude = '.' + conditions.map((c, i) => generateName(themeConditionKeys.indexOf(c), i === 0)).join('') + generateName(themePropertyKeys.indexOf(property), conditions.length === 0);
     let p = property.startsWith('--') ? property : kebab(property);
