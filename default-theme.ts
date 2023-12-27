@@ -350,6 +350,24 @@ let gridTrackSize = (value: GridTrackSize) => {
   return value in spacing ? spacing[value] : value
 };
 
+const transitionProperty = {
+  default: 'color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter',
+  colors: 'color, background-color, border-color, text-decoration-color, fill, stroke',
+  opacity: 'opacity',
+  shadow: 'box-shadow',
+  transform: 'transform',
+  all: 'all',
+  none: 'none',
+};
+
+const transitionTimingFunction = {
+  default: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  linear: 'linear',
+  in: 'cubic-bezier(0.4, 0, 1, 1)',
+  out: 'cubic-bezier(0, 0, 0.2, 1)',
+  'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+};
+
 export const style = createTheme({
   properties: {
     // colors
@@ -654,7 +672,34 @@ export const style = createTheme({
       8: '8px',
     },
 
-    // transition
+    transition: property(value => ({
+      transitionProperty: value,
+      transitionDuration: '150ms',
+      transitionTimingFunction: transitionTimingFunction.default
+    }), transitionProperty),
+    transitionDelay: {
+      0: '0s',
+      75: '75ms',
+      100: '100ms',
+      150: '150ms',
+      200: '200ms',
+      300: '300ms',
+      500: '500ms',
+      700: '700ms',
+      1000: '1000ms',
+    },
+    transitionDuration: {
+      0: '0s',
+      75: '75ms',
+      100: '100ms',
+      150: '150ms',
+      200: '200ms',
+      300: '300ms',
+      500: '500ms',
+      700: '700ms',
+      1000: '1000ms',
+    },
+    transitionTimingFunction,
 
     // layout
     display: ['block', 'inline-block', 'inline', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'list-item', 'none'] as const, // tables?
