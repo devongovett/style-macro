@@ -30,35 +30,42 @@ type PropertyValue<T> =
         ? T[number]
         : never;
 
-type Style<T extends Theme> = {
-  [Name in keyof T['properties']]?: StyleValue<PropertyValue<T['properties'][Name]> | `--${string}`, T>
+type Style<T extends Theme, R extends string> = {
+  [Name in keyof T['properties']]?: StyleValue<PropertyValue<T['properties'][Name]> | `--${string}`, Condition<T>, R>
 };
 
-type StyleValue<V extends string | number, T extends Theme> = V | Conditional<V, T>;
-type Condition<T extends Theme> = keyof T['conditions'] & string;
-type Conditional<V extends string | number, T extends Theme> = {
-  [name in Condition<T> | 'default' | (string & {})]?: StyleValue<V, T>
+type RenderProps<K extends string> = {
+  [key in K]: any
 };
 
-type RecursiveConditions<T extends Theme, C extends Conditional<any, any>> = {
+type StyleValue<V extends Value, C extends string, R extends string> = V | Conditional<V, C, R>;
+type Condition<T extends Theme> = (keyof T['conditions'] & string) | 'default';
+type Conditional<V extends Value, C extends string, R extends string> = {
+  [name in C | (IsUnion<R, R, (string & {})>)]?: StyleValue<V, C, R>
+};
+
+type RecursiveConditions<B extends string, C extends Conditional<any, any, any>> = {
   [Name in keyof C]:
-    Name extends (keyof T['conditions'] | 'default')
+    Name extends B
       ? never
-      : C[Name] extends Conditional<any, any>
-        ? Name | RecursiveConditions<T, C[Name]>
+      : C[Name] extends Conditional<any, any, any>
+        ? Name | RecursiveConditions<B, C[Name]>
         : Name
 }[keyof C];
 
-type ExtractConditionals<T extends Theme, S extends Style<any>> = {
-  [Name in keyof S]: S[Name] extends Conditional<any, any> ? RecursiveConditions<T, S[Name]> : never
+type ExtractConditionals<C extends string, S extends Style<any, any>> = {
+  [Name in keyof S]: S[Name] extends Conditional<any, any, any> ? RecursiveConditions<C, S[Name]> : never
 }[keyof S];
 
-type RuntimeConditionsObject<T extends Theme, S extends Style<T>> = {
-  [Name in ExtractConditionals<T, S>]?: boolean
+type RuntimeConditionsObject<C extends string, S extends Style<any, any>> = {
+  [Name in ExtractConditionals<C, S>]?: boolean
 };
 
-type RuntimeStyleFunction<T extends Theme, S extends Style<T>> = (props: RuntimeConditionsObject<T, S>) => string;
-type StyleFunction<T extends Theme> = <S extends Style<T>>(style: S) => RuntimeStyleFunction<T, S>;
+type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
+type IsUnion<T, A, B, U extends T = T> = T extends unknown ? [U] extends [T] ? B : A : B;
+type InferProps<C extends string, S extends Style<any, any>, R extends RenderProps<string>> = IsUnion<Keys<R>, Partial<R>, RuntimeConditionsObject<C, S>>
+type RuntimeStyleFunction<R extends RenderProps<string>> = (props: R) => string;
+type StyleFunction<T extends Theme> = <R extends RenderProps<string>, S extends Style<T, Keys<R>> = Style<T, Keys<R>>>(style: S) => RuntimeStyleFunction<InferProps<Condition<T>, S, R>>;
 
 export function property<T>(fn: (value: T) => CSS.Properties): PropertyFunction<T>
 export function property<T extends Value>(fn: (value: string) => CSS.Properties, values: PropertyValueMap<T>): PropertyFunction<T>
@@ -77,14 +84,14 @@ export function property<T extends Value>(fn: (value: string) => CSS.Properties,
 }
 
 function generateArbitraryValueSelector(v: string) {
-  return [...v].map(c => generateName(c.charCodeAt(0))).join('');
+  return '-' + [...v].map(c => generateName(c.charCodeAt(0))).join('');
 }
 
 export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   let themePropertyKeys = Object.keys(theme.properties);
   let themeConditionKeys = Object.keys(theme.conditions);
 
-  return function style<S extends Style<T>>(style: S) {
+  return function style(style) {
     let css = '';
     let js = 'let rules = "";\n';
     let printedRules = new Set<string>();
@@ -108,10 +115,10 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
       content: css
     });
 
-    return new Function('props', js) as RuntimeStyleFunction<T, S>;
+    return new Function('props', js) as any;
   }
 
-  function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<Value, T, any>) {
+  function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<Value, Condition<T>, any>) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
       if (value.default != null) {
@@ -163,7 +170,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
 
   function compileRule(conditions: Condition<T>[], property: string, value: Value): Rule {
     // let prelude = `.${appendPrefix(conditions.join('-'), property)}-${value}`;
-    let prelude = '.' + conditions.map((c, i) => generateName(themeConditionKeys.indexOf(c), i === 0)).join('') + generateName(themePropertyKeys.indexOf(property), conditions.length === 0);
+    let prelude = '.' + generateName(themePropertyKeys.indexOf(property), true) + conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('');
     let p = property.startsWith('--') ? property : kebab(property);
 
     let body = '';
@@ -231,13 +238,9 @@ function generateName(index: number, atStart = false) {
     // numbers
     let res = String.fromCharCode((index - 52) + 48);
     if (atStart) {
-      res = '_' + res;
+      res = '-' + res;
     }
     return res;
-  }
-
-  if (index === 62) {
-    return '-';
   }
 
   return '_' + generateName(index - 62);
@@ -284,4 +287,61 @@ function printRuleChildren(rule: Rule, indent = '') {
   return typeof rule.body === 'string'
     ? `rules += ' ${rule.prelude.slice(1)}';`
     : printJS(rule.body, indent);
+}
+
+export function merge<A extends RenderProps<string>, B extends RenderProps<string>>(a: RuntimeStyleFunction<A>, b: RuntimeStyleFunction<B>): RuntimeStyleFunction<A & B> {
+  return (props) => {
+    return dedupe(a(props) + b(props));
+  };
+}
+
+function dedupe(s: string) {
+  let properties = new Map<string, string>();
+  let i = 0;
+  while (i < s.length) {
+    while (i < s.length && s[i] === ' ') {
+      i++;
+    }
+
+    if (s[i] === '-') {
+      i++
+    }
+
+    let start = i;
+    readValue(); // property index
+
+    // read conditions (up to the last segment)
+    let last = i;
+    while (i < s.length && s[i] !== ' ' && s[i] !== '-') {
+      last = i;
+      readValue();
+    }
+
+    // skip arbitrary values
+    if (s[i] === '-') {
+      while (i < s.length && s[i] !== ' ') {
+        i++;
+      }
+    }
+
+    properties.set(s.slice(start, last), s.slice(start, i));
+  }
+
+  function readValue() {
+    while (i < s.length) {
+      if (s[i] === '_') {
+        i++;
+      } else {
+        i++;
+        break;
+      }
+    }
+  }
+
+  let res = '';
+  for (let v of properties.values()) {
+    res += ' ' + v;
+  }
+
+  return res;
 }

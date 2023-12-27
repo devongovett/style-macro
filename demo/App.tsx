@@ -1,7 +1,8 @@
-import {Checkbox as RACCheckbox, CheckboxProps} from 'react-aria-components';
+import {Checkbox as RACCheckbox, CheckboxProps, CheckboxRenderProps} from 'react-aria-components';
 import {Check, Minus} from 'lucide-react';
 import { style } from '../default-theme.ts' with {type: 'macro'};
 import React from 'react';
+import { merge } from '../style-macro.ts';
 
 export function App() {
   return (
@@ -14,7 +15,20 @@ export function App() {
   )
 }
 
-const box = style({
+const focusRing = style({
+  outlineStyle: {
+    default: 'none',
+    isFocusVisible: 'solid'
+  },
+  outlineColor: {
+    default: 'blue-600',
+    forcedColors: 'Highlight'
+  },
+  outlineWidth: 2,
+  outlineOffset: 2
+});
+
+const box = merge(focusRing, style({
   width: 5,
   height: 5,
   borderRadius: 'md',
@@ -54,7 +68,7 @@ const box = style({
       forcedColors: 'GrayText'
     }
   }
-});
+}));
 
 const iconStyles = style({
   width: 4,
@@ -73,21 +87,23 @@ const iconStyles = style({
 
 function Checkbox(props: CheckboxProps) {
   return (
-    <RACCheckbox {...props} className={style({
-      display: 'flex',
-      gap: 2,
-      alignItems: 'center',
-      color: {
-        default: 'gray-800',
-        dark: 'zinc-200',
-        isDisabled: {
-          default: 'gray-300',
-          dark: 'zinc-600',
-          forcedColors: 'GrayText'
+    <RACCheckbox 
+      {...props}
+      className={style({
+        display: 'flex',
+        gap: 2,
+        alignItems: 'center',
+        color: {
+          default: 'gray-800',
+          dark: 'zinc-200',
+          isDisabled: {
+            default: 'gray-300',
+            dark: 'zinc-600',
+            forcedColors: 'GrayText'
+          }
         },
-      },
-      fontSize: 'sm'
-    })}>
+        fontSize: 'sm'
+      })}>
       {({isSelected, isIndeterminate, ...renderProps}) => (
         <>
           <div className={box({isSelected: isSelected || isIndeterminate, ...renderProps})}>
