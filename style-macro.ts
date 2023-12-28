@@ -1,13 +1,15 @@
 import type * as CSS from 'csstype';
 
-type Value = string | number;
-type PropertyValueMap<T extends Value = Value> = {
+type CSSValue = string | number;
+type CustomValue = string | number | boolean;
+type Value = CustomValue | CustomValue[];
+type PropertyValueMap<T extends CSSValue = CSSValue> = {
   [name in T]: string
 };
 
-interface PropertyFunction<T> {
-  (value: Value): CSS.Properties,
-  getValue: (value: T) => [Value, string]
+interface PropertyFunction<T extends Value> {
+  (value: CSSValue): CSS.Properties,
+  getValue: (value: T) => [CSSValue, string]
 }
 
 interface Theme {
@@ -21,7 +23,7 @@ interface Theme {
 
 type PropertyValue<T> =
   T extends PropertyFunction<any>
-    ? T['getValue'] extends (value: infer P) => [Value, string]
+    ? T['getValue'] extends (value: infer P) => [CSSValue, string]
       ? P
       : never
     : T extends PropertyValueMap
@@ -30,18 +32,23 @@ type PropertyValue<T> =
         ? T[number]
         : never;
 
-type Style<T extends Theme, R extends string> = {
-  [Name in keyof T['properties']]?: StyleValue<PropertyValue<T['properties'][Name]> | `--${string}`, Condition<T>, R>
+type Style<T extends Theme, R extends RenderProps<string>> = {
+  [Name in keyof T['properties']]?: StyleValue<PropertyValue<T['properties'][Name]> | `--${string}` | `[${string}]`, Condition<T>, R>
 };
 
 type RenderProps<K extends string> = {
   [key in K]: any
 };
 
-type StyleValue<V extends Value, C extends string, R extends string> = V | Conditional<V, C, R>;
+type StyleValue<V extends Value, C extends string, R extends RenderProps<string>> = V | Conditional<V, C, R>;
 type Condition<T extends Theme> = (keyof T['conditions'] & string) | 'default';
-type Conditional<V extends Value, C extends string, R extends string> = {
-  [name in C | (IsUnion<R, R, (string & {})>)]?: StyleValue<V, C, R>
+type Conditional<V extends Value, C extends string, R extends RenderProps<string>> = {
+  [name in C | (IsUnion<Keys<R>, Keys<R>, (string & {})>)]?:
+    name extends C 
+      ? StyleValue<V, C, R>
+      : name extends `is${string}` 
+        ? StyleValue<V, C, R>
+        : IsUnion<Keys<R>, {[k in R[name]]?: StyleValue<V, C, R>}, StyleValue<V, C, R>>
 };
 
 type RecursiveConditions<B extends string, C extends Conditional<any, any, any>> = {
@@ -64,12 +71,12 @@ type RuntimeConditionsObject<C extends string, S extends Style<any, any>> = {
 type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
 type IsUnion<T, A, B, U extends T = T> = T extends unknown ? [U] extends [T] ? B : A : B;
 type InferProps<C extends string, S extends Style<any, any>, R extends RenderProps<string>> = IsUnion<Keys<R>, Partial<R>, RuntimeConditionsObject<C, S>>
-type RuntimeStyleFunction<R extends RenderProps<string>> = (props: R) => string;
-type StyleFunction<T extends Theme> = <R extends RenderProps<string>, S extends Style<T, Keys<R>> = Style<T, Keys<R>>>(style: S) => RuntimeStyleFunction<InferProps<Condition<T>, S, R>>;
+type RuntimeStyleFunction<R> = (props: R) => string;
+type StyleFunction<T extends Theme> = <R extends RenderProps<string>, S extends Style<T, R> = Style<T, R>>(style: S) => RuntimeStyleFunction<InferProps<Condition<T>, S, R>>;
 
-export function property<T>(fn: (value: T) => CSS.Properties): PropertyFunction<T>
-export function property<T extends Value>(fn: (value: string) => CSS.Properties, values: PropertyValueMap<T>): PropertyFunction<T>
-export function property<T extends Value>(fn: (value: string) => CSS.Properties, values?: PropertyValueMap<T>): PropertyFunction<T> {
+export function property<T extends Value>(fn: (value: T) => CSS.Properties): PropertyFunction<T>
+export function property<T extends CSSValue>(fn: (value: string) => CSS.Properties, values: PropertyValueMap<T>): PropertyFunction<T>
+export function property<T extends CSSValue>(fn: (value: string) => CSS.Properties, values?: PropertyValueMap<T>): PropertyFunction<T> {
   let f = fn as PropertyFunction<T>;
   if (values) {
     let keys = Object.keys(values);
@@ -92,7 +99,12 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   let themeConditionKeys = Object.keys(theme.conditions);
 
   return function style(style) {
-    let css = '';
+    let css = '@layer a';
+    for (let i = 0; i < themeConditionKeys.length; i++) {
+      css += ', ' + generateName(i + 1);
+    }
+    css += ';\n\n';
+
     let js = 'let rules = "";\n';
     let printedRules = new Set<string>();
     for (let key in theme.properties) {
@@ -148,21 +160,34 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
             }
           }
         }
-        rules.push(compileCondition(cond, compileValue(conditions, property, value[cond]!)));
+        if (cond.startsWith('is')) {
+          rules.push(compileCondition(cond, compileValue(conditions, property, value[cond]!)));
+        } else if (typeof val === 'object' && val) {
+          for (let key in val) {
+            rules.push(compileCondition(`${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, value[cond]![key]!)));
+          }
+        }
       }
       return rules;
+    } else if (conditions.length === 0) {
+      return [{
+        prelude: '@layer a',
+        body: [compileRule(conditions, property, value)],
+        condition: ''
+      }]
     } else {
       return [compileRule(conditions, property, value)];
     }
   }
 
-  function compileCondition(condition: Condition<T>, rules: Rule[]): Rule {
+  function compileCondition(condition: string, rules: Rule[]): Rule {
     if (condition === 'default') {
       return {prelude: '', condition: '', body: rules};
     }
 
     if (condition in theme.conditions) {
-      return {prelude: theme.conditions[condition], body: rules, condition: ''};
+      // return {prelude: theme.conditions[condition], body: rules, condition: ''};
+      return {prelude: `@layer ${generateName(themeConditionKeys.indexOf(condition) + 1)}`, body: [{prelude: theme.conditions[condition], body: rules, condition: ''}], condition: ''};
     }
 
     return {prelude: '', condition, body: rules};
@@ -178,6 +203,9 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
       if (typeof value === 'string' && value.startsWith('--')) {
         prelude += value;
         body = `${p}: var(${value})`;
+      } else if (typeof value === 'string' && value[0] === '[' && value[value.length - 1] === ']') {
+        prelude += generateArbitraryValueSelector(value.slice(1, -1));
+        body = `${p}: ${value.slice(1, -1)}`;
       } else {
         let v = theme.properties[property];
         if (typeof v === 'function') {
@@ -190,9 +218,12 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
         } else if (Array.isArray(v)) {
           prelude += generateName(v.indexOf(String(value)));
           body = `${p}: ${value}`;
+        } else if (typeof value !== 'object') {
+          let val = String(value);
+          prelude += generateName(Object.keys(theme.properties[property]).indexOf(String(val)));
+          body = `${p}: ${v[val]}`;
         } else {
-          prelude += generateName(Object.keys(theme.properties[property]).indexOf(String(value)));
-          body = `${p}: ${v[value]}`;
+          throw new Error(`Invalid value: ${value}`);
         }
       }
     }
@@ -289,9 +320,15 @@ function printRuleChildren(rule: Rule, indent = '') {
     : printJS(rule.body, indent);
 }
 
-export function merge<A extends RenderProps<string>, B extends RenderProps<string>>(a: RuntimeStyleFunction<A>, b: RuntimeStyleFunction<B>): RuntimeStyleFunction<A & B> {
+// taken from: https://stackoverflow.com/questions/51603250/typescript-3-parameter-list-intersection-type/51604379#51604379
+type ArgTypes<T> = T extends (props: infer V) => any ? V : never;
+type BoxedTupleTypes<T extends any[]> = { [P in keyof T]: [ArgTypes<T[P]>] }[Exclude<keyof T, keyof any[]>];
+type UnboxIntersection<T> = T extends { 0: infer U } ? U : never;
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
+
+export function merge<T extends RuntimeStyleFunction<any>[]>(...args: T): RuntimeStyleFunction<UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>> {
   return (props) => {
-    return dedupe(a(props) + b(props));
+    return dedupe(args.map(f => f(props)).join(''));
   };
 }
 

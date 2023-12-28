@@ -7,6 +7,9 @@ const color = {
   transparent: 'transparent',
   black: 'black',
   white: 'white',
+  ButtonBorder: 'ButtonBorder',
+  ButtonText: 'ButtonText',
+  Field: 'Field',
   Highlight: 'Highlight',
   HighlightText: 'HighlightText',
   GrayText: 'GrayText',
@@ -327,7 +330,7 @@ const borderWidth = {
 const radius = {
   none: '0px',
   sm: '0.125rem',
-  DEFAULT: '0.25rem',
+  default: '0.25rem',
   md: '0.375rem',
   lg: '0.5rem',
   xl: '0.75rem',
@@ -368,16 +371,28 @@ const transitionTimingFunction = {
   'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
+function generateColorWithOpacity(v: string) {
+  let res = {...color};
+  for (let key in color) {
+    if (key !== 'transparent' && !/^[A-Z]/.test(key)) {
+      res[key] = `rgb(from ${color[key]} r g b / var(${v}, 1))`;
+    }
+  }
+  return res;
+}
+
+const borderColor = generateColorWithOpacity('--border-opacity');
+
 export const style = createTheme({
   properties: {
     // colors
     color: color,
     backgroundColor: color,
-    borderColor: color,
-    borderStartColor: color,
-    borderEndColor: color,
-    borderTopColor: color,
-    borderBottomColor: color,
+    borderColor: borderColor,
+    borderStartColor: borderColor,
+    borderEndColor: borderColor,
+    borderTopColor: borderColor,
+    borderBottomColor: borderColor,
     outlineColor: color,
     textDecorationColor: color,
     accentColor: color,
@@ -627,7 +642,7 @@ export const style = createTheme({
     // effects
     boxShadow: {
       sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-      DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+      default: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
       md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
       lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
       xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
@@ -654,6 +669,7 @@ export const style = createTheme({
     backgroundBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'] as const,
     mixBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-darker', 'plus-lighter'] as const,
     opacity: property((value: number) => ({opacity: value})),
+    borderOpacity: property((value: number) => ({'--border-opacity': value})),
     // filter, backdropFilter
 
     outlineStyle: ['none', 'solid', 'dashed', 'dotted', 'double'] as const,
