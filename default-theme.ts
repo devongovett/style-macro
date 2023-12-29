@@ -350,6 +350,7 @@ let gridTrack = (value: GridTrack) => {
 };
 
 let gridTrackSize = (value: GridTrackSize) => {
+  // @ts-ignore
   return value in spacing ? spacing[value] : value
 };
 
@@ -375,6 +376,7 @@ function generateColorWithOpacity(v: string) {
   let res = {...color};
   for (let key in color) {
     if (key !== 'transparent' && !/^[A-Z]/.test(key)) {
+      // @ts-ignore
       res[key] = `rgb(from ${color[key]} r g b / var(${v}, 1))`;
     }
   }

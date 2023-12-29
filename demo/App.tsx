@@ -1,12 +1,11 @@
-import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RACButton, ButtonProps as RACButtonProps, DateValue, DateField as AriaDateField, DateInput as AriaDateInput, DateFieldProps, DateInputProps, DateSegment, Label} from 'react-aria-components';
-import {Check, Minus} from 'lucide-react';
+import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RACButton, ButtonProps as RACButtonProps, DateValue, DateField as AriaDateField, DateInput as AriaDateInput, DateFieldProps, DateInputProps, DateSegment, Label, SearchFieldProps, SearchField as AriaSearchField, GroupProps, Group, InputProps, Input as RACInput} from 'react-aria-components';
+import {Check, Minus, SearchIcon, XIcon} from 'lucide-react';
 import { style } from '../default-theme.ts' with {type: 'macro'};
-import React from 'react';
 import { merge } from '../style-macro.ts';
 
 export function App() {
   return (
-    <div className={style({display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'start'})({})}>
+    <div className={style({display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'start'})()}>
       <Checkbox>Test</Checkbox>
       <Checkbox isInvalid>Test</Checkbox>
       <Checkbox isIndeterminate>Test</Checkbox>
@@ -16,6 +15,7 @@ export function App() {
       <Button variant="destructive">Test</Button>
       <Button variant="primary" isDisabled>Test</Button>
       <DateField />
+      <SearchField />
     </div>
   );
 }
@@ -131,13 +131,31 @@ interface ButtonProps extends RACButtonProps {
 }
 
 const button = merge(focusRing, style<ButtonRenderProps & {variant: 'primary' | 'secondary' | 'destructive' | 'icon'}>({
-  paddingX: 5,
-  paddingY: 2,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingX: {
+    default: 5,
+    variant: {
+      icon: 1
+    }
+  },
+  paddingY: {
+    default: 2,
+    variant: {
+      icon: 1
+    }
+  },
   fontSize: 'sm',
   textAlign: 'center',
   transition: 'default',
   borderRadius: 'lg',
-  borderStyle: 'solid',
+  borderStyle: {
+    default: 'solid',
+    variant: {
+      icon: 'none'
+    }
+  },
   borderWidth: 1,
   borderColor: {
     default: 'black',
@@ -175,9 +193,18 @@ const button = merge(focusRing, style<ButtonRenderProps & {variant: 'primary' | 
         isHovered: 'red-800',
         isPressed: 'red-900'
       },
-      // icon: {
-      //   isHovered: 'bg-white/10' dpofjdpofj dpfojdpfoj
-      // }
+      icon: {
+        default: {
+          default: 'transparent',
+          isHovered: 'gray-50',
+          isPressed: 'gray-100'
+        },
+        dark: {
+          default: 'transparent',
+          isHovered: 'gray-800',
+          isPressed: 'gray-700'
+        }
+      }
     },
     isDisabled: {
       default: 'gray-100',
@@ -192,7 +219,10 @@ const button = merge(focusRing, style<ButtonRenderProps & {variant: 'primary' | 
         dark: 'zinc-100'
       },
       destructive: 'white',
-      icon: 'gray-600'
+      icon: {
+        default: 'gray-600',
+        dark: 'zinc-400'
+      }
     },
     isDisabled: 'GrayText'
   }
@@ -202,30 +232,12 @@ function Button(props: ButtonProps) {
   return (
     <RACButton
       {...props}
-      className={renderProps => button({...renderProps, variant: props.variant})} />
+      className={merge(props.className, renderProps => button({...renderProps, variant: props.variant}))} />
   );
 }
 
 const fieldBorderStyles = style({
   borderColor: {
-    // default: 'gray-300',
-    // dark: 'zinc-500',
-    // forcedColors: 'ButtonBorder',
-    // isFocusWithin: {
-    //   default: 'gray-600',
-    //   dark: 'zinc-300',
-    //   forcedColors: 'Highlight'
-    // },
-    // isInvalid: {
-    //   default: 'red-600',
-    //   dark: 'red-600',
-    //   forcedColors: 'Mark'
-    // },
-    // isDisabled: {
-    //   default: 'gray-200',
-    //   dark: 'zinc-700',
-    //   forcedColors: 'GrayText'
-    // }
     default: {
       default: 'gray-300',
       isFocusWithin: 'gray-600',
@@ -247,9 +259,8 @@ const fieldBorderStyles = style({
 });
 
 const fieldGroupStyles = merge(focusRing, fieldBorderStyles, style({
-  // display: 'flex',
-  // alignItems: 'center',
-  height: 9,
+  display: 'flex',
+  alignItems: 'center',
   backgroundColor: {
     default: 'white',
     dark: 'zinc-900',
@@ -258,19 +269,13 @@ const fieldGroupStyles = merge(focusRing, fieldBorderStyles, style({
   borderWidth: 2,
   borderStyle: 'solid',
   borderRadius: 'lg',
-  overflow: 'hidden',
-
-  display: 'block',
-  // minWidth: 150,
-  paddingX: 2,
-  paddingY: 1.5,
-  fontSize: 'sm'
+  overflow: 'hidden'
 }));
 
 function DateField<T extends DateValue>(props: DateFieldProps<T>) {
   return (
-    <AriaDateField {...props} className="flex flex-col gap-1">
-      <Label>Test</Label>
+    <AriaDateField {...props} className={style({display: 'flex', flexDirection: 'column', gap: 1})}>
+      <Label className={style({fontSize: 'sm'})()}>Test</Label>
       <DateInput />
     </AriaDateField>
   );
@@ -278,22 +283,30 @@ function DateField<T extends DateValue>(props: DateFieldProps<T>) {
 
 function DateInput(props: Omit<DateInputProps, 'children'>) {
   return (
-    <AriaDateInput className={fieldGroupStyles} {...props}>
+    <AriaDateInput
+      {...props}
+      className={merge(fieldGroupStyles, style({
+        display: 'block',
+        minWidth: 40,
+        paddingX: 2,
+        paddingY: 1.5,
+        fontSize: 'sm'
+      }))}>
       {(segment) => (
         <DateSegment
           segment={segment}
           className={style({
             display: 'inline',
+            borderRadius: 'default',
+            outlineStyle: 'none',
+            forcedColorAdjust: 'none',
+            caretColor: 'transparent',
             padding: {
               default: 0.5,
               type: {
                 literal: 0
               }
             },
-            borderRadius: 'default',
-            outlineStyle: 'none',
-            forcedColorAdjust: 'none',
-            caretColor: 'transparent',
             fontStyle: {
               isPlaceholder: 'italic'
             },
@@ -324,5 +337,54 @@ function DateInput(props: Omit<DateInputProps, 'children'>) {
           })} />
       )}
     </AriaDateInput>
+  );
+}
+
+function FieldGroup(props: GroupProps) {
+  return <Group {...props} className={fieldGroupStyles} />;
+}
+
+function SearchField(props: SearchFieldProps) {
+  return (
+    <AriaSearchField {...props} className={style({display: 'flex', flexDirection: 'column', gap: 1})}>
+      {({isEmpty}) => <>
+        <Label className={style({fontSize: 'sm'})()}>Test</Label>
+        <FieldGroup>
+          <SearchIcon aria-hidden className={style({width: 4, height: 4, marginStart: 2, color: {default: 'gray-500', dark: 'zinc-400', forcedColors: 'ButtonText'}})()} />
+          <Input className="[&::-webkit-search-cancel-button]:hidden disabled:[-webkit-text-fill-color:theme(colors.gray.200)]" />
+          <Button variant="icon" className={() => style({marginEnd: 1, visibility: {isEmpty: 'hidden'}})({isEmpty})}>
+            <XIcon aria-hidden className={style({width: 4, height: 4})()} />
+          </Button>
+        </FieldGroup>
+      </>}
+    </AriaSearchField>
+  );
+}
+
+function Input(props: InputProps) {
+  return (
+    <RACInput
+      {...props}
+      className={style({
+        paddingX: 2,
+        paddingY: 1.5,
+        flex: 1,
+        minWidth: 0,
+        outlineStyle: 'none',
+        backgroundColor: {
+          default: 'white',
+          dark: 'zinc-900',
+        },
+        fontSize: 'sm',
+        color: {
+          default: 'gray-800',
+          dark: 'zinc-200',
+          isDisabled: {
+            default: 'gray-200',
+            dark: 'zinc-700'
+          }
+        },
+        borderStyle: 'none'
+      })} />
   );
 }

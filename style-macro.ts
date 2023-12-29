@@ -7,8 +7,12 @@ type PropertyValueMap<T extends CSSValue = CSSValue> = {
   [name in T]: string
 };
 
+type CSSProperties = CSS.Properties & {
+  [k: `--${string}`]: CSSValue
+};
+
 interface PropertyFunction<T extends Value> {
-  (value: CSSValue): CSS.Properties,
+  (value: CSSValue): CSSProperties,
   getValue: (value: T) => [CSSValue, string]
 }
 
@@ -48,16 +52,15 @@ type Conditional<V extends Value, C extends string, R extends RenderProps<string
       ? StyleValue<V, C, R>
       : name extends `is${string}` 
         ? StyleValue<V, C, R>
-        : IsUnion<Keys<R>, {[k in R[name]]?: StyleValue<V, C, R>}, StyleValue<V, C, R>>
+        : IsUnion<Keys<R>, VariantMap<R[name], V, C, R>, StyleValue<V, C, R>>
+};
+
+type VariantMap<K extends string, V extends Value, C extends string, R extends RenderProps<string>> = {
+  [k in K]?: StyleValue<V, C, R>
 };
 
 type RecursiveConditions<B extends string, C extends Conditional<any, any, any>> = {
-  [Name in keyof C]:
-    Name extends B
-      ? never
-      : C[Name] extends Conditional<any, any, any>
-        ? Name | RecursiveConditions<B, C[Name]>
-        : Name
+  [Name in keyof C]: (Name extends B ? never : Name) | (C[Name] extends Value ? never : RecursiveConditions<B, C[Name]>)
 }[keyof C];
 
 type ExtractConditionals<C extends string, S extends Style<any, any>> = {
@@ -71,12 +74,12 @@ type RuntimeConditionsObject<C extends string, S extends Style<any, any>> = {
 type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
 type IsUnion<T, A, B, U extends T = T> = T extends unknown ? [U] extends [T] ? B : A : B;
 type InferProps<C extends string, S extends Style<any, any>, R extends RenderProps<string>> = IsUnion<Keys<R>, Partial<R>, RuntimeConditionsObject<C, S>>
-type RuntimeStyleFunction<R> = (props: R) => string;
+type RuntimeStyleFunction<R> = keyof R extends never ? () => string : (props: R) => string;
 type StyleFunction<T extends Theme> = <R extends RenderProps<string>, S extends Style<T, R> = Style<T, R>>(style: S) => RuntimeStyleFunction<InferProps<Condition<T>, S, R>>;
 
-export function property<T extends Value>(fn: (value: T) => CSS.Properties): PropertyFunction<T>
-export function property<T extends CSSValue>(fn: (value: string) => CSS.Properties, values: PropertyValueMap<T>): PropertyFunction<T>
-export function property<T extends CSSValue>(fn: (value: string) => CSS.Properties, values?: PropertyValueMap<T>): PropertyFunction<T> {
+export function property<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T>
+export function property<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T>): PropertyFunction<T>
+export function property<T extends CSSValue>(fn: (value: string) => CSSProperties, values?: PropertyValueMap<T>): PropertyFunction<T> {
   let f = fn as PropertyFunction<T>;
   if (values) {
     let keys = Object.keys(values);
@@ -122,6 +125,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     // console.log(css)
     // console.log(js);
 
+    // @ts-ignore
     this.addAsset({
       type: 'css',
       content: css
@@ -151,7 +155,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
         }
 
         let cond = condition as Condition<T>;
-        let val = value[cond];
+        let val = value[cond]!;
         if (typeof val == 'object' && val) {
           for (let key in theme.conditions) {
             if (key in value && !(key in val)) {
@@ -161,10 +165,11 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
           }
         }
         if (cond.startsWith('is')) {
-          rules.push(compileCondition(cond, compileValue(conditions, property, value[cond]!)));
+          rules.push(compileCondition(cond, compileValue(conditions, property, val)));
         } else if (typeof val === 'object' && val) {
-          for (let key in val) {
-            rules.push(compileCondition(`${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, value[cond]![key]!)));
+          let v = val as VariantMap<string, Value, Condition<T>, any>;
+          for (let key in v) {
+            rules.push(compileCondition(`${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, v[key]!)));
           }
         }
       }
@@ -194,7 +199,6 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
   }
 
   function compileRule(conditions: Condition<T>[], property: string, value: Value): Rule {
-    // let prelude = `.${appendPrefix(conditions.join('-'), property)}-${value}`;
     let prelude = '.' + generateName(themePropertyKeys.indexOf(property), true) + conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('');
     let p = property.startsWith('--') ? property : kebab(property);
 
@@ -246,15 +250,7 @@ interface Rule {
   body: string | Rule[]
 }
 
-function appendPrefix(prefix: string, value: string) {
-  if (value === 'default') {
-    return prefix;
-  }
-
-  return (prefix ? prefix + '-' : '') + value;
-}
-
-function generateName(index: number, atStart = false) {
+function generateName(index: number, atStart = false): string {
   if (index < 26) {
     // lower case letters
     return String.fromCharCode(index + 97);
@@ -321,14 +317,15 @@ function printRuleChildren(rule: Rule, indent = '') {
 }
 
 // taken from: https://stackoverflow.com/questions/51603250/typescript-3-parameter-list-intersection-type/51604379#51604379
-type ArgTypes<T> = T extends (props: infer V) => any ? V : never;
+type ArgTypes<T> = T extends (props: infer V) => any ? NullToObject<V> : never;
+type NullToObject<T> = T extends (null | undefined) ? {} : T;
 type BoxedTupleTypes<T extends any[]> = { [P in keyof T]: [ArgTypes<T[P]>] }[Exclude<keyof T, keyof any[]>];
 type UnboxIntersection<T> = T extends { 0: infer U } ? U : never;
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
 
-export function merge<T extends RuntimeStyleFunction<any>[]>(...args: T): RuntimeStyleFunction<UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>> {
+export function merge<T extends (RuntimeStyleFunction<any> | null | undefined)[]>(...args: T): (props: UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>) => string {
   return (props) => {
-    return dedupe(args.map(f => f(props)).join(''));
+    return dedupe(args.map(f => typeof f === 'function' ? f(props) : '').join(''));
   };
 }
 
