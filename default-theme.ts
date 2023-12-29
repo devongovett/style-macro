@@ -1,6 +1,5 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
 import tailwindColors from 'tailwindcss/colors';
-import { createTheme, property } from './style-macro.ts';
+import { createColorProperty, createTheme, property } from './style-macro.ts';
 import type * as CSS from 'csstype';
 
 const color = {
@@ -372,41 +371,32 @@ const transitionTimingFunction = {
   'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
-function generateColorWithOpacity(v: string) {
-  let res = {...color};
-  for (let key in color) {
-    if (key !== 'transparent' && !/^[A-Z]/.test(key)) {
-      // @ts-ignore
-      res[key] = `rgb(from ${color[key]} r g b / var(${v}, 1))`;
-    }
-  }
-  return res;
-}
-
-const borderColor = generateColorWithOpacity('--border-opacity');
+const colorWithAlpha = createColorProperty(color);
 
 export const style = createTheme({
   properties: {
     // colors
-    color: color,
-    backgroundColor: color,
-    borderColor: borderColor,
-    borderStartColor: borderColor,
-    borderEndColor: borderColor,
-    borderTopColor: borderColor,
-    borderBottomColor: borderColor,
-    outlineColor: color,
-    textDecorationColor: color,
-    accentColor: color,
-    caretColor: color,
-    fill: {
+    color: colorWithAlpha,
+    backgroundColor: colorWithAlpha,
+    borderColor: colorWithAlpha,
+    borderXColor: createColorProperty(color, 'borderInlineColor'),
+    borderYColor: createColorProperty(color, 'borderBlockColor'),
+    borderStartColor: createColorProperty(color, 'borderInlineStartColor'),
+    borderEndColor: createColorProperty(color, 'borderInlineEndColor'),
+    borderTopColor: colorWithAlpha,
+    borderBottomColor: colorWithAlpha,
+    outlineColor: colorWithAlpha,
+    textDecorationColor: colorWithAlpha,
+    accentColor: colorWithAlpha,
+    caretColor: colorWithAlpha,
+    fill: createColorProperty({
       none: 'none',
       ...color
-    },
-    stroke: {
+    }),
+    stroke: createColorProperty({
       none: 'none',
       ...color
-    },
+    }),
     '--color': color,
 
     // dimensions
@@ -671,7 +661,6 @@ export const style = createTheme({
     backgroundBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'] as const,
     mixBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-darker', 'plus-lighter'] as const,
     opacity: property((value: number) => ({opacity: value})),
-    borderOpacity: property((value: number) => ({'--border-opacity': value})),
     // filter, backdropFilter
 
     outlineStyle: ['none', 'solid', 'dashed', 'dotted', 'double'] as const,

@@ -1,6 +1,7 @@
 import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RACButton, ButtonProps as RACButtonProps, DateValue, DateField as AriaDateField, DateInput as AriaDateInput, DateFieldProps, DateInputProps, DateSegment, Label, SearchFieldProps, SearchField as AriaSearchField, GroupProps, Group, InputProps, Input as RACInput} from 'react-aria-components';
 import {Check, Minus, SearchIcon, XIcon} from 'lucide-react';
 import { style } from '../default-theme.ts' with {type: 'macro'};
+import { raw } from '../style-macro.ts' with {type: 'macro'};
 import { merge } from '../style-macro.ts';
 
 export function App() {
@@ -158,12 +159,12 @@ const button = merge(focusRing, style<ButtonRenderProps & {variant: 'primary' | 
   },
   borderWidth: 1,
   borderColor: {
-    default: 'black',
-    dark: 'white'
-  },
-  borderOpacity: {
-    default: 0.1,
-    isDisabled: 0.05
+    default: 'black/10',
+    dark: 'white/10',
+    isDisabled: {
+      default: 'black/5',
+      dark: 'white/5'
+    }
   },
   boxShadow: {
     default: '[inset 0 1px 0 0 rgba(255, 255, 255, 0.1)]',
@@ -196,13 +197,13 @@ const button = merge(focusRing, style<ButtonRenderProps & {variant: 'primary' | 
       icon: {
         default: {
           default: 'transparent',
-          isHovered: 'gray-50',
-          isPressed: 'gray-100'
+          isHovered: 'black/5',
+          isPressed: 'black/10'
         },
         dark: {
           default: 'transparent',
-          isHovered: 'gray-800',
-          isPressed: 'gray-700'
+          isHovered: 'white/5',
+          isPressed: 'white/10'
         }
       }
     },
@@ -351,7 +352,7 @@ function SearchField(props: SearchFieldProps) {
         <Label className={style({fontSize: 'sm'})()}>Test</Label>
         <FieldGroup>
           <SearchIcon aria-hidden className={style({width: 4, height: 4, marginStart: 2, color: {default: 'gray-500', dark: 'zinc-400', forcedColors: 'ButtonText'}})()} />
-          <Input className="[&::-webkit-search-cancel-button]:hidden disabled:[-webkit-text-fill-color:theme(colors.gray.200)]" />
+          <Input className={raw('&::-webkit-search-cancel-button { display: none }')} />
           <Button variant="icon" className={() => style({marginEnd: 1, visibility: {isEmpty: 'hidden'}})({isEmpty})}>
             <XIcon aria-hidden className={style({width: 4, height: 4})()} />
           </Button>
@@ -365,7 +366,7 @@ function Input(props: InputProps) {
   return (
     <RACInput
       {...props}
-      className={style({
+      className={r => props.className + style({
         paddingX: 2,
         paddingY: 1.5,
         flex: 1,
@@ -385,6 +386,6 @@ function Input(props: InputProps) {
           }
         },
         borderStyle: 'none'
-      })} />
+      })(r)} />
   );
 }

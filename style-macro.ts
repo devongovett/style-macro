@@ -12,7 +12,7 @@ type CSSProperties = CSS.Properties & {
 };
 
 interface PropertyFunction<T extends Value> {
-  (value: CSSValue): CSSProperties,
+  (value: CSSValue, property: string): CSSProperties,
   getValue: (value: T) => [CSSValue, string]
 }
 
@@ -80,12 +80,12 @@ type StyleFunction<T extends Theme> = <R extends RenderProps<string>, S extends 
 export function property<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T>
 export function property<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T>): PropertyFunction<T>
 export function property<T extends CSSValue>(fn: (value: string) => CSSProperties, values?: PropertyValueMap<T>): PropertyFunction<T> {
-  let f = fn as PropertyFunction<T>;
+  let f: any = (value: any) => fn(value);
   if (values) {
     let keys = Object.keys(values);
-    f.getValue = (value) => [values[value], generateName(keys.indexOf(String(value)))];
+    f.getValue = (value: T) => [values[value], generateName(keys.indexOf(String(value)))];
   } else {
-    f.getValue = (value) => {
+    f.getValue = (value: string) => {
       let v = Array.isArray(value) ? value.map(v => generateArbitraryValueSelector(String(v))).join('') : generateArbitraryValueSelector(String(value));
       return [value, v];
     };
@@ -93,8 +93,19 @@ export function property<T extends CSSValue>(fn: (value: string) => CSSPropertie
   return f;
 }
 
-function generateArbitraryValueSelector(v: string) {
-  return '-' + [...v].map(c => generateName(c.charCodeAt(0))).join('');
+type Color<C extends string> = C | `${C}/${number}`;
+export function createColorProperty<C extends string>(colors: PropertyValueMap<C>, property?: keyof CSSProperties): PropertyFunction<Color<C>> {
+  let keys = Object.keys(colors);
+  let f: any = (value: CSSValue, key: string) => ({[property || key]: value});
+  f.getValue = (value: Color<C>) => {
+    let [color, opacity] = value.split('/');
+    // @ts-ignore
+    let c = colors[color];
+    let css = opacity ? `rgb(from ${c} r g b / ${opacity}%)` : c;
+    let selector = generateName(keys.indexOf(color)) + (opacity ? opacity.replace('.', '-') : '');
+    return [css, selector];
+  };
+  return f;
 }
 
 export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
@@ -215,7 +226,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
         if (typeof v === 'function') {
           let [val, p] = v.getValue(value);
           prelude += p;
-          let obj = v(val);
+          let obj = v(val, property);
           for (let key in obj) {
             body += `${kebab(key)}: ${obj[key]};`
           }
@@ -265,12 +276,29 @@ function generateName(index: number, atStart = false): string {
     // numbers
     let res = String.fromCharCode((index - 52) + 48);
     if (atStart) {
-      res = '-' + res;
+      res = '_' + res;
     }
     return res;
   }
 
   return '_' + generateName(index - 62);
+}
+
+function generateArbitraryValueSelector(v: string, atStart = false) {
+  let c = hash(v).toString(36);
+  if (atStart) {
+    return /^[0-9]/.test(c) ? '_' + c : c;
+  } else {
+    return '-' + c;
+  }
+}
+
+function hash(v: string) {
+  let hash = 5381;
+  for (let i = 0; i < v.length; i++) {
+    hash = ((hash << 5) + hash) + v.charCodeAt(i) >>> 0;
+  }
+  return hash;
 }
 
 function printRule(rule: Rule, printedRules: Set<string>, indent = ''): string {
@@ -316,6 +344,18 @@ function printRuleChildren(rule: Rule, indent = '') {
     : printJS(rule.body, indent);
 }
 
+export function raw(css: string) {
+  let className = generateArbitraryValueSelector(css, true);
+  css = `.${className} {
+  ${css}
+}`;
+  this.addAsset({
+    type: 'css',
+    content: css
+  });
+  return className;
+}
+
 // taken from: https://stackoverflow.com/questions/51603250/typescript-3-parameter-list-intersection-type/51604379#51604379
 type ArgTypes<T> = T extends (props: infer V) => any ? NullToObject<V> : never;
 type NullToObject<T> = T extends (null | undefined) ? {} : T;
@@ -335,10 +375,6 @@ function dedupe(s: string) {
   while (i < s.length) {
     while (i < s.length && s[i] === ' ') {
       i++;
-    }
-
-    if (s[i] === '-') {
-      i++
     }
 
     let start = i;
