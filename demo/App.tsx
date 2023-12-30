@@ -236,7 +236,10 @@ function Button(props: ButtonProps) {
   return (
     <RACButton
       {...props}
-      className={merge(props.className, renderProps => button({...renderProps, variant: props.variant}))} />
+      className={merge(
+        typeof props.className === 'function' ? props.className : null,
+        renderProps => button({...renderProps, variant: props.variant})
+      )} />
   );
 }
 

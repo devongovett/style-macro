@@ -33,19 +33,26 @@ type PropertyValue<T> =
         : never;
 
 type PropertyValue2<T> = PropertyValue<T> | CustomProperty | `[${string}]`;
+type Merge<T> = T extends any ? T : never;
 
-type Style<T extends Theme, R extends RenderProps<string>> = StaticProperties<T, R> & CustomProperties<T, R>;
-type StaticProperties<T extends Theme, R extends RenderProps<string>> = {
-  [Name in keyof T['properties']]?: StyleValue<PropertyValue2<T['properties'][Name]>, Condition<T>, R>
+// Pre-compute value types for all theme properties ahead of time.
+type ThemeProperties<T extends Theme> = Merge<{
+  [K in keyof T['properties']]: Merge<PropertyValue2<T['properties'][K]>>
+}>;
+
+type Style<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = StaticProperties<T, C, R> & CustomProperties<T, C, R>;
+type StaticProperties<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = {
+  [Name in keyof T]?: StyleValue<T[Name], C, R>
 };
 
-type CustomProperties<T extends Theme, R extends RenderProps<string>> = {
-  [key: CustomProperty]: CustomPropertyValue<T, keyof T['properties'], Condition<T>, R>
+type CustomProperties<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = {
+  [key: CustomProperty]: CustomPropertyValue<T, keyof T, C, R>
 };
 
-type CustomPropertyValue<T extends Theme, P extends keyof T['properties'], C extends string, R extends RenderProps<string>> = 
+// Infer the value type of custom property values from the `type` key, which references a theme property.
+type CustomPropertyValue<T extends ThemeProperties<Theme>, P extends keyof T, C extends string, R extends RenderProps<string>> = 
   P extends any 
-    ? {type: P, value: StyleValue<PropertyValue2<T['properties'][P]>, C, R>}
+    ? {type: P, value: StyleValue<T[P], C, R>}
     : never;
 
 type RenderProps<K extends string> = {
@@ -76,6 +83,9 @@ type RenderPropConditions<V extends Value, C extends string, R extends RenderPro
   [name in Keys<R>]?: RenderPropCondition<V, C, R, R[name]>
 };
 
+type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
+type Values<T> = T extends Record<any, infer V> ? V : never;
+
 type RenderPropCondition<V extends Value, C extends string, R extends RenderProps<string>, T extends CustomValue> = 
   T extends boolean 
     ? StyleValue<V, C, R> 
@@ -87,36 +97,45 @@ type VariantMap<K extends CSSValue, V extends Value, C extends string, R extends
   [k in K]?: StyleValue<V, C, R>
 };
 
+// These types are used to recursively extract all runtime conditions/variants in case an
+// explicit render prop generic type is not provided/inferred. This allows the returned function
+// to automatically accept the correct arguments based on the style definition.
 type BooleanConditionName = `is${Capitalize<string>}`;
 type ExtractConditionalValue<C extends keyof any, V> = V extends Value 
   ? never
+  // Add the keys from this level for boolean conditions not in the theme.
   : RuntimeConditionObject<keyof Pick<V, Extract<keyof V, BooleanConditionName>>, boolean>
+    // Add variant values for non-boolean named keys.
     | Variants<V, Exclude<keyof V, C | BooleanConditionName>>
+    // Recursively include conditions from the next level.
     | ExtractConditionalValue<C, 
       Values<SafePick<V, Extract<keyof V, C | BooleanConditionName>>
+      // And skip over variants to get to the values.
       | Values<Omit<V, C | BooleanConditionName>>>
     >;
 
-type RuntimeConditionObject<K, V> = K extends keyof any ?  { [P in K]: V } : never;
-type Values<T> = T extends Record<any, infer V> ? V : never;
+type RuntimeConditionObject<K, V> = K extends keyof any ?  { [P in K]?: V } : never;
 type SafePick<T, K extends keyof T> = K extends any ? Pick<T, K> : never;
 
 type Variants<T, K extends keyof T> = K extends any ? {
-  [k in K]: keyof T[k]
+  [k in K]?: keyof T[k]
 } : never;
 
 type InferCustomPropertyValue<T> = T extends {value: infer V} ? V : never;
-type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any>> = UnionToIntersection<
+type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any, any>> = UnionToIntersection<
   ExtractConditionalValue<C,
     | Values<Omit<S, CustomProperty>> 
+    // Skip top-level object for custom properties and go straight to value.
     | InferCustomPropertyValue<Values<Pick<S, Extract<keyof S, CustomProperty>>>>
   >
 >;
 
-type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
+// If an render prop type was provided, use that so that we get autocomplete for conditions.
+// Otherwise, fall back to inferring the render props from the style definition itself.
 type RuntimeStyleFunction<R> = keyof R extends never ? () => string : (props: R) => string;
-type InferProps<R, C extends keyof any, S extends Style<any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : Partial<R>;
-type StyleFunction<T extends Theme> = <R extends RenderProps<string> = never, S extends Style<T, R> = Style<T, R>>(style: S) => RuntimeStyleFunction<InferProps<R, Condition<T>, S>>;
+type InferProps<R, C extends keyof any, S extends Style<any, any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : Partial<R>;
+type StyleFunction<T extends ThemeProperties<Theme>, C extends string> = 
+  <R extends RenderProps<string> = never, S extends Style<T, C, R> = Style<T, C, R>>(style: S) => RuntimeStyleFunction<InferProps<R, C, S>>;
 
 export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
   return (value) => {
@@ -145,7 +164,7 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
   };
 }
 
-export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
+export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, Condition<T>> {
   let themePropertyKeys = Object.keys(theme.properties);
   let themeConditionKeys = Object.keys(theme.conditions);
 
@@ -276,6 +295,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
           let [obj, p] = v(value, property);
           prelude += p;
           for (let key in obj) {
+            // @ts-ignore
             body += `${kebab(key)}: ${obj[key]};`
           }
         } else if (Array.isArray(v)) {
