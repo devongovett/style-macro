@@ -40,7 +40,9 @@ type ThemeProperties<T extends Theme> = Merge<{
   [K in keyof T['properties']]: Merge<PropertyValue2<T['properties'][K]>>
 }>;
 
-type Style<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = StaticProperties<T, C, R> & CustomProperties<T, C, R>;
+type Style<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = 
+  StaticProperties<T, C, R> & CustomProperties<T, C, R>;
+
 type StaticProperties<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = {
   [Name in keyof T]?: StyleValue<T[Name], C, R>
 };
@@ -79,21 +81,21 @@ type UnknownConditions<V extends Value, C extends string> = {
   [name: string]: StyleValue<V, C, never> | VariantMap<string, V, C, never>
 };
 
-type RenderPropConditions<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [name in Keys<R>]?: RenderPropCondition<V, C, R, R[name]>
+type RenderPropConditions<V extends Value, C extends string, R extends RenderProps<string>> = 
+  BooleanRenderProps<V, C, R> & VariantRenderProps<V, C, R>;
+
+type BooleanConditionName = `is${Capitalize<string>}`;
+type BooleanRenderProps<V extends Value, C extends string, R extends RenderProps<string>> = {
+  [K in Extract<keyof R, BooleanConditionName>]?: StyleValue<V, C, R>
 };
 
-type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
+type VariantRenderProps<V extends Value, C extends string, R extends RenderProps<string>> = {
+  [K in Exclude<keyof R, BooleanConditionName>]?: VariantMap<R[K], V, C, R>
+};
+
 type Values<T, K extends keyof T = keyof T> = {
   [k in K]: T[k]
 }[K];
-
-type RenderPropCondition<V extends Value, C extends string, R extends RenderProps<string>, T extends CustomValue> = 
-  T extends boolean 
-    ? StyleValue<V, C, R> 
-    : T extends CSSValue 
-      ? VariantMap<T, V, C, R>
-      : never;
 
 type VariantMap<K extends CSSValue, V extends Value, C extends string, R extends RenderProps<string>> = {
   [k in K]?: StyleValue<V, C, R>
@@ -102,7 +104,6 @@ type VariantMap<K extends CSSValue, V extends Value, C extends string, R extends
 // These types are used to recursively extract all runtime conditions/variants in case an
 // explicit render prop generic type is not provided/inferred. This allows the returned function
 // to automatically accept the correct arguments based on the style definition.
-type BooleanConditionName = `is${Capitalize<string>}`;
 type ExtractConditionalValue<C extends keyof any, V> = V extends Value 
   ? never
   // Add the keys from this level for boolean conditions not in the theme.
@@ -238,7 +239,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
             }
           }
         }
-        if (cond.startsWith('is')) {
+        if (/^is[A-Z]/.test(cond)) {
           rules.push(compileCondition(cond, compileValue(conditions, property, themeProperty, val)));
         } else if (typeof val === 'object' && val) {
           let v = val as VariantMap<string, Value, Condition<T>, any>;
@@ -275,7 +276,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
   function compileRule(conditions: Condition<T>[], property: string, themeProperty: string, value: Value): Rule {
     let prelude = '.';
     if (property.startsWith('--')) {
-      prelude += property;
+      prelude += generateArbitraryValueSelector(property, true) + '-';
     } else {
       prelude += generateName(themePropertyKeys.indexOf(themeProperty), true);
     }
@@ -357,11 +358,10 @@ function generateName(index: number, atStart = false): string {
 
 function generateArbitraryValueSelector(v: string, atStart = false) {
   let c = hash(v).toString(36);
-  if (atStart) {
-    return /^[0-9]/.test(c) ? '_' + c : c;
-  } else {
-    return '-' + c;
+  if (atStart && /^[0-9]/.test(c)) {
+    c = `_${c}`;
   }
+  return `-${c}`;
 }
 
 function hash(v: string) {
@@ -454,28 +454,32 @@ function dedupe(s: string) {
 
     // read conditions (up to the last segment)
     let last = i;
-    while (i < s.length && s[i] !== ' ' && s[i] !== '-') {
+    while (i < s.length && s[i] !== ' ') {
       last = i;
       readValue();
-    }
-
-    // skip arbitrary values
-    if (s[i] === '-') {
-      while (i < s.length && s[i] !== ' ') {
-        i++;
-      }
     }
 
     properties.set(s.slice(start, last), s.slice(start, i));
   }
 
   function readValue() {
-    while (i < s.length) {
-      if (s[i] === '_') {
+    if (s[i] === '-') {
+      // the beginning and end of arbitrary values are marked with -
+      while (i < s.length && s[i] !== ' ') {
         i++;
-      } else {
-        i++;
-        break;
+        if (s[i] === '-') {
+          i++;
+          break;
+        }
+      }
+    } else {
+      while (i < s.length) {
+        if (s[i] === '_') {
+          i++;
+        } else {
+          i++;
+          break;
+        }
       }
     }
   }
