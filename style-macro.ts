@@ -7,14 +7,12 @@ type PropertyValueMap<T extends CSSValue = CSSValue> = {
   [name in T]: string
 };
 
+type CustomProperty = `--${string}`;
 type CSSProperties = CSS.Properties & {
-  [k: `--${string}`]: CSSValue
+  [k: CustomProperty]: CSSValue
 };
 
-interface PropertyFunction<T extends Value> {
-  (value: CSSValue, property: string): CSSProperties,
-  getValue: (value: T) => [CSSValue, string]
-}
+type PropertyFunction<T extends Value> = (value: T, property: string) => [CSSProperties, string];
 
 interface Theme {
   properties: {
@@ -26,19 +24,29 @@ interface Theme {
 }
 
 type PropertyValue<T> =
-  T extends PropertyFunction<any>
-    ? T['getValue'] extends (value: infer P) => [CSSValue, string]
+  T extends PropertyFunction<infer P>
+    ? P
+    : T extends PropertyValueMap<infer P>
       ? P
-      : never
-    : T extends PropertyValueMap
-      ? keyof T
       : T extends string[]
         ? T[number]
         : never;
 
-type Style<T extends Theme, R extends RenderProps<string>> = {
-  [Name in keyof T['properties']]?: StyleValue<PropertyValue<T['properties'][Name]> | `--${string}` | `[${string}]`, Condition<T>, R>
+type PropertyValue2<T> = PropertyValue<T> | CustomProperty | `[${string}]`;
+
+type Style<T extends Theme, R extends RenderProps<string>> = StaticProperties<T, R> & CustomProperties<T, R>;
+type StaticProperties<T extends Theme, R extends RenderProps<string>> = {
+  [Name in keyof T['properties']]?: StyleValue<PropertyValue2<T['properties'][Name]>, Condition<T>, R>
 };
+
+type CustomProperties<T extends Theme, R extends RenderProps<string>> = {
+  [key: CustomProperty]: CustomPropertyValue<T, keyof T['properties'], Condition<T>, R>
+};
+
+type CustomPropertyValue<T extends Theme, P extends keyof T['properties'], C extends string, R extends RenderProps<string>> = 
+  P extends any 
+    ? {type: P, value: StyleValue<PropertyValue2<T['properties'][P]>, C, R>}
+    : never;
 
 type RenderProps<K extends string> = {
   [key in K]: any
@@ -46,66 +54,95 @@ type RenderProps<K extends string> = {
 
 type StyleValue<V extends Value, C extends string, R extends RenderProps<string>> = V | Conditional<V, C, R>;
 type Condition<T extends Theme> = (keyof T['conditions'] & string) | 'default';
-type Conditional<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [name in C | (IsUnion<Keys<R>, Keys<R>, (string & {})>)]?:
-    name extends C 
-      ? StyleValue<V, C, R>
-      : name extends `is${string}` 
-        ? StyleValue<V, C, R>
-        : IsUnion<Keys<R>, VariantMap<R[name], V, C, R>, StyleValue<V, C, R>>
+type Conditional<V extends Value, C extends string, R extends RenderProps<string>> = 
+  ThemeConditions<V, C, R> & DynamicConditions<V, C, R>
+
+type ThemeConditions<V extends Value, C extends string, R extends RenderProps<string>> = {
+  [name in C]?: StyleValue<V, C, R>
 };
 
-type VariantMap<K extends string, V extends Value, C extends string, R extends RenderProps<string>> = {
+// If render props are unknown, allow any custom conditions to be inferred.
+// Unfortunately this breaks "may only specify known properties" errors.
+type DynamicConditions<V extends Value, C extends string, R extends RenderProps<string>> = 
+  [R] extends [never] 
+    ? UnknownConditions<V, C>
+    : RenderPropConditions<V, C, R>;
+
+type UnknownConditions<V extends Value, C extends string> = {
+  [name: string]: StyleValue<V, C, never> | VariantMap<string, V, C, never>
+};
+
+type RenderPropConditions<V extends Value, C extends string, R extends RenderProps<string>> = {
+  [name in Keys<R>]?: RenderPropCondition<V, C, R, R[name]>
+};
+
+type RenderPropCondition<V extends Value, C extends string, R extends RenderProps<string>, T extends CustomValue> = 
+  T extends boolean 
+    ? StyleValue<V, C, R> 
+    : T extends CSSValue 
+      ? VariantMap<T, V, C, R>
+      : never;
+
+type VariantMap<K extends CSSValue, V extends Value, C extends string, R extends RenderProps<string>> = {
   [k in K]?: StyleValue<V, C, R>
 };
 
-type RecursiveConditions<B extends string, C extends Conditional<any, any, any>> = {
-  [Name in keyof C]: (Name extends B ? never : Name) | (C[Name] extends Value ? never : RecursiveConditions<B, C[Name]>)
-}[keyof C];
+type BooleanConditionName = `is${Capitalize<string>}`;
+type ExtractConditionalValue<C extends keyof any, V> = V extends Value 
+  ? never
+  : RuntimeConditionObject<keyof Pick<V, Extract<keyof V, BooleanConditionName>>, boolean>
+    | Variants<V, Exclude<keyof V, C | BooleanConditionName>>
+    | ExtractConditionalValue<C, 
+      Values<SafePick<V, Extract<keyof V, C | BooleanConditionName>>
+      | Values<Omit<V, C | BooleanConditionName>>>
+    >;
 
-type ExtractConditionals<C extends string, S extends Style<any, any>> = {
-  [Name in keyof S]: S[Name] extends Conditional<any, any, any> ? RecursiveConditions<C, S[Name]> : never
-}[keyof S];
+type RuntimeConditionObject<K, V> = K extends keyof any ?  { [P in K]: V } : never;
+type Values<T> = T extends Record<any, infer V> ? V : never;
+type SafePick<T, K extends keyof T> = K extends any ? Pick<T, K> : never;
 
-type RuntimeConditionsObject<C extends string, S extends Style<any, any>> = {
-  [Name in ExtractConditionals<C, S>]?: boolean
-};
+type Variants<T, K extends keyof T> = K extends any ? {
+  [k in K]: keyof T[k]
+} : never;
+
+type InferCustomPropertyValue<T> = T extends {value: infer V} ? V : never;
+type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any>> = UnionToIntersection<
+  ExtractConditionalValue<C,
+    | Values<Omit<S, CustomProperty>> 
+    | InferCustomPropertyValue<Values<Pick<S, Extract<keyof S, CustomProperty>>>>
+  >
+>;
 
 type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
-type IsUnion<T, A, B, U extends T = T> = T extends unknown ? [U] extends [T] ? B : A : B;
-type InferProps<C extends string, S extends Style<any, any>, R extends RenderProps<string>> = IsUnion<Keys<R>, Partial<R>, RuntimeConditionsObject<C, S>>
 type RuntimeStyleFunction<R> = keyof R extends never ? () => string : (props: R) => string;
-type StyleFunction<T extends Theme> = <R extends RenderProps<string>, S extends Style<T, R> = Style<T, R>>(style: S) => RuntimeStyleFunction<InferProps<Condition<T>, S, R>>;
+type InferProps<R, C extends keyof any, S extends Style<any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : Partial<R>;
+type StyleFunction<T extends Theme> = <R extends RenderProps<string> = never, S extends Style<T, R> = Style<T, R>>(style: S) => RuntimeStyleFunction<InferProps<R, Condition<T>, S>>;
 
-export function property<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T>
-export function property<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T>): PropertyFunction<T>
-export function property<T extends CSSValue>(fn: (value: string) => CSSProperties, values?: PropertyValueMap<T>): PropertyFunction<T> {
-  let f: any = (value: any) => fn(value);
-  if (values) {
-    let keys = Object.keys(values);
-    f.getValue = (value: T) => [values[value], generateName(keys.indexOf(String(value)))];
-  } else {
-    f.getValue = (value: string) => {
-      let v = Array.isArray(value) ? value.map(v => generateArbitraryValueSelector(String(v))).join('') : generateArbitraryValueSelector(String(value));
-      return [value, v];
-    };
-  }
-  return f;
+export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
+  return (value) => {
+    let selector = Array.isArray(value) ? value.map(v => generateArbitraryValueSelector(String(v))).join('') : generateArbitraryValueSelector(String(value));
+    return [fn(value), selector];
+  };
+}
+
+export function createMappedProperty<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T>): PropertyFunction<T> {
+  let keys = Object.keys(values);
+  return (value) => {
+    return [fn(values[value]), generateName(keys.indexOf(String(value)))];
+  };
 }
 
 type Color<C extends string> = C | `${C}/${number}`;
 export function createColorProperty<C extends string>(colors: PropertyValueMap<C>, property?: keyof CSSProperties): PropertyFunction<Color<C>> {
   let keys = Object.keys(colors);
-  let f: any = (value: CSSValue, key: string) => ({[property || key]: value});
-  f.getValue = (value: Color<C>) => {
+  return (value: Color<C>, key: string) => {
     let [color, opacity] = value.split('/');
     // @ts-ignore
     let c = colors[color];
     let css = opacity ? `rgb(from ${c} r g b / ${opacity}%)` : c;
     let selector = generateName(keys.indexOf(color)) + (opacity ? opacity.replace('.', '-') : '');
-    return [css, selector];
+    return [{[property || key]: css}, selector];
   };
-  return f;
 }
 
 export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
@@ -121,14 +158,17 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
 
     let js = 'let rules = "";\n';
     let printedRules = new Set<string>();
-    for (let key in theme.properties) {
-      if (key in style) {
-        let value = style[key]!;
-        let rules = compileValue([], key, value);
-        js += printJS(rules) + '\n';
-        for (let rule of rules) {
-          css += printRule(rule, printedRules) + '\n\n';
-        }
+    for (let key in style) {
+      let value = style[key]!;
+      let themeProperty = key;
+      if (key.startsWith('--')) {
+        themeProperty = value.type;
+        value = value.value;
+      }
+      let rules = compileValue([], key, themeProperty, value);
+      js += printJS(rules) + '\n';
+      for (let rule of rules) {
+        css += printRule(rule, printedRules) + '\n\n';
       }
     }
 
@@ -145,17 +185,17 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     return new Function('props', js) as any;
   }
 
-  function compileValue(conditions: Condition<T>[], property: string, value: StyleValue<Value, Condition<T>, any>) {
+  function compileValue(conditions: Condition<T>[], property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
       if (value.default != null) {
-        rules.push(compileCondition('default', compileValue(conditions, property, value.default)));
+        rules.push(compileCondition('default', compileValue(conditions, property, themeProperty, value.default)));
       }
 
       for (let condition in theme.conditions) {
         if (value[condition] != null) {
           let c = conditions.concat(condition);
-          rules.push(compileCondition(condition, compileValue(c, property, value[condition]!)));
+          rules.push(compileCondition(condition, compileValue(c, property, themeProperty, value[condition]!)));
         }
       }
 
@@ -170,17 +210,18 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
         if (typeof val == 'object' && val) {
           for (let key in theme.conditions) {
             if (key in value && !(key in val)) {
+              // @ts-ignore
               val[key] = value[key];
               // console.log(key, value[key])
             }
           }
         }
         if (cond.startsWith('is')) {
-          rules.push(compileCondition(cond, compileValue(conditions, property, val)));
+          rules.push(compileCondition(cond, compileValue(conditions, property, themeProperty, val)));
         } else if (typeof val === 'object' && val) {
           let v = val as VariantMap<string, Value, Condition<T>, any>;
           for (let key in v) {
-            rules.push(compileCondition(`${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, v[key]!)));
+            rules.push(compileCondition(`${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, themeProperty, v[key]!)));
           }
         }
       }
@@ -188,11 +229,11 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     } else if (conditions.length === 0) {
       return [{
         prelude: '@layer a',
-        body: [compileRule(conditions, property, value)],
+        body: [compileRule(conditions, property, themeProperty, value)],
         condition: ''
       }]
     } else {
-      return [compileRule(conditions, property, value)];
+      return [compileRule(conditions, property, themeProperty, value)];
     }
   }
 
@@ -209,12 +250,20 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
     return {prelude: '', condition, body: rules};
   }
 
-  function compileRule(conditions: Condition<T>[], property: string, value: Value): Rule {
-    let prelude = '.' + generateName(themePropertyKeys.indexOf(property), true) + conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('');
+  function compileRule(conditions: Condition<T>[], property: string, themeProperty: string, value: Value): Rule {
+    let prelude = '.';
+    if (property.startsWith('--')) {
+      prelude += property;
+    } else {
+      prelude += generateName(themePropertyKeys.indexOf(themeProperty), true);
+    }
+    
+    prelude += conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('');
+    
     let p = property.startsWith('--') ? property : kebab(property);
 
     let body = '';
-    if (property in theme.properties) {
+    if (themeProperty in theme.properties) {
       if (typeof value === 'string' && value.startsWith('--')) {
         prelude += value;
         body = `${p}: var(${value})`;
@@ -222,11 +271,10 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
         prelude += generateArbitraryValueSelector(value.slice(1, -1));
         body = `${p}: ${value.slice(1, -1)}`;
       } else {
-        let v = theme.properties[property];
+        let v = theme.properties[themeProperty];
         if (typeof v === 'function') {
-          let [val, p] = v.getValue(value);
+          let [obj, p] = v(value, property);
           prelude += p;
-          let obj = v(val, property);
           for (let key in obj) {
             body += `${kebab(key)}: ${obj[key]};`
           }
@@ -235,7 +283,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<T> {
           body = `${p}: ${value}`;
         } else if (typeof value !== 'object') {
           let val = String(value);
-          prelude += generateName(Object.keys(theme.properties[property]).indexOf(String(val)));
+          prelude += generateName(Object.keys(v).indexOf(val));
           body = `${p}: ${v[val]}`;
         } else {
           throw new Error(`Invalid value: ${value}`);
@@ -349,6 +397,7 @@ export function raw(css: string) {
   css = `.${className} {
   ${css}
 }`;
+  // @ts-ignore
   this.addAsset({
     type: 'css',
     content: css

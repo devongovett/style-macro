@@ -52,26 +52,29 @@ const box = merge(focusRing, style({
   },
   borderColor: '--color',
   '--color': {
-    default: 'gray-700',
-    dark: 'slate-300',
-    forcedColors: 'Highlight',
-    isPressed: {
-      default: 'gray-800',
-      dark: 'slate-200',
-    },
-    isInvalid: {
-      default: 'red-700',
-      dark: 'red-600',
-      forcedColors: 'Mark',
+    type: 'color',
+    value: {
+      default: 'gray-700',
+      dark: 'slate-300',
+      forcedColors: 'Highlight',
       isPressed: {
-        default: 'red-800',
-        dark: 'red-700'
+        default: 'gray-800',
+        dark: 'slate-200',
+      },
+      isInvalid: {
+        default: 'red-700',
+        dark: 'red-600',
+        forcedColors: 'Mark',
+        isPressed: {
+          default: 'red-800',
+          dark: 'red-700'
+        }
+      },
+      isDisabled: {
+        default: 'gray-200',
+        dark: 'zinc-700',
+        forcedColors: 'GrayText'
       }
-    },
-    isDisabled: {
-      default: 'gray-200',
-      dark: 'zinc-700',
-      forcedColors: 'GrayText'
     }
   }
 }));
