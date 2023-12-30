@@ -84,7 +84,9 @@ type RenderPropConditions<V extends Value, C extends string, R extends RenderPro
 };
 
 type Keys<T extends RenderProps<string>> = T extends RenderProps<infer K> ? K : never;
-type Values<T> = T extends Record<any, infer V> ? V : never;
+type Values<T, K extends keyof T = keyof T> = {
+  [k in K]: T[k]
+}[K];
 
 type RenderPropCondition<V extends Value, C extends string, R extends RenderProps<string>, T extends CustomValue> = 
   T extends boolean 
@@ -104,18 +106,19 @@ type BooleanConditionName = `is${Capitalize<string>}`;
 type ExtractConditionalValue<C extends keyof any, V> = V extends Value 
   ? never
   // Add the keys from this level for boolean conditions not in the theme.
-  : RuntimeConditionObject<keyof Pick<V, Extract<keyof V, BooleanConditionName>>, boolean>
+  : RuntimeConditionObject<Extract<keyof V, BooleanConditionName>, boolean>
     // Add variant values for non-boolean named keys.
     | Variants<V, Exclude<keyof V, C | BooleanConditionName>>
     // Recursively include conditions from the next level.
     | ExtractConditionalValue<C, 
-      Values<SafePick<V, Extract<keyof V, C | BooleanConditionName>>
-      // And skip over variants to get to the values.
-      | Values<Omit<V, C | BooleanConditionName>>>
+      Values<
+        Values<V, Extract<keyof V, C | BooleanConditionName>>
+        // And skip over variants to get to the values.
+        | Values<V, Exclude<keyof V, C | BooleanConditionName>>
+      >
     >;
 
 type RuntimeConditionObject<K, V> = K extends keyof any ?  { [P in K]?: V } : never;
-type SafePick<T, K extends keyof T> = K extends any ? Pick<T, K> : never;
 
 type Variants<T, K extends keyof T> = K extends any ? {
   [k in K]?: keyof T[k]
@@ -124,9 +127,9 @@ type Variants<T, K extends keyof T> = K extends any ? {
 type InferCustomPropertyValue<T> = T extends {value: infer V} ? V : never;
 type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any, any>> = UnionToIntersection<
   ExtractConditionalValue<C,
-    | Values<Omit<S, CustomProperty>> 
+    | Values<S, Exclude<keyof S, CustomProperty>> 
     // Skip top-level object for custom properties and go straight to value.
-    | InferCustomPropertyValue<Values<Pick<S, Extract<keyof S, CustomProperty>>>>
+    | InferCustomPropertyValue<Values<S, Extract<keyof S, CustomProperty>>>
   >
 >;
 
