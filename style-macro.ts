@@ -112,11 +112,9 @@ type ExtractConditionalValue<C extends keyof any, V> = V extends Value
     | Variants<V, Exclude<keyof V, C | BooleanConditionName>>
     // Recursively include conditions from the next level.
     | ExtractConditionalValue<C, 
-      Values<
-        Values<V, Extract<keyof V, C | BooleanConditionName>>
-        // And skip over variants to get to the values.
-        | Values<V, Exclude<keyof V, C | BooleanConditionName>>
-      >
+      | Values<V, Extract<keyof V, C | BooleanConditionName>>
+      // And skip over variants to get to the values.
+      | Values<Values<V, Exclude<keyof V, C | BooleanConditionName>>>
     >;
 
 type RuntimeConditionObject<K, V> = K extends keyof any ?  { [P in K]?: V } : never;
@@ -168,11 +166,15 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
   };
 }
 
+interface MacroContext {
+  addAsset(asset: {type: string, content: string}): void
+}
+
 export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, Condition<T>> {
   let themePropertyKeys = Object.keys(theme.properties);
   let themeConditionKeys = Object.keys(theme.conditions);
 
-  return function style(style) {
+  return function style(this: MacroContext | void, style) {
     let css = '@layer a';
     for (let i = 0; i < themeConditionKeys.length; i++) {
       css += ', ' + generateName(i + 1);
@@ -199,11 +201,12 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     // console.log(css)
     // console.log(js);
 
-    // @ts-ignore
-    this.addAsset({
-      type: 'css',
-      content: css
-    });
+    if (typeof this?.addAsset === 'function') {
+      this.addAsset({
+        type: 'css',
+        content: css
+      });
+    }
 
     return new Function('props', js) as any;
   }
@@ -415,16 +418,17 @@ function printRuleChildren(rule: Rule, indent = '') {
     : printJS(rule.body, indent);
 }
 
-export function raw(css: string) {
+export function raw(this: MacroContext | void, css: string) {
   let className = generateArbitraryValueSelector(css, true);
   css = `.${className} {
   ${css}
 }`;
-  // @ts-ignore
-  this.addAsset({
-    type: 'css',
-    content: css
-  });
+  if (typeof this?.addAsset === 'function') {
+    this.addAsset({
+      type: 'css',
+      content: css
+    });
+  }
   return className;
 }
 
