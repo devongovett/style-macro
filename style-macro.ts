@@ -137,7 +137,7 @@ type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any, any>
 // If an render prop type was provided, use that so that we get autocomplete for conditions.
 // Otherwise, fall back to inferring the render props from the style definition itself.
 type RuntimeStyleFunction<R> = keyof R extends never ? () => string : (props: R) => string;
-type InferProps<R, C extends keyof any, S extends Style<any, any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : Partial<R>;
+type InferProps<R, C extends keyof any, S extends Style<any, any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : R;
 type StyleFunction<T extends ThemeProperties<Theme>, C extends string> = 
   <R extends RenderProps<string> = never, S extends Style<T, C, R> = Style<T, C, R>>(style: S) => RuntimeStyleFunction<InferProps<R, C, S>>;
 
@@ -434,8 +434,15 @@ type NullToObject<T> = T extends (null | undefined) ? {} : T;
 type BoxedTupleTypes<T extends any[]> = { [P in keyof T]: [ArgTypes<T[P]>] }[Exclude<keyof T, keyof any[]>];
 type UnboxIntersection<T> = T extends { 0: infer U } ? U : never;
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
+type Arg<R> = RuntimeStyleFunction<R> | null | undefined;
+type NoInfer<T> = [T, void][T extends any ? 0 : 1];
 
-export function merge<T extends (RuntimeStyleFunction<any> | null | undefined)[]>(...args: T): (props: UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>) => string {
+// Two overloads:
+// 1. If a render props type is expected based on the return type, forward that type to all arguments.
+// 2. Otherwise, infer the return type based on the arguments.
+export function merge<R extends RenderProps<string> = never>(...args: Arg<NoInfer<R>>[]): RuntimeStyleFunction<R>;
+export function merge<T extends Arg<any>[]>(...args: T): RuntimeStyleFunction<UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>>;
+export function merge(...args: any[]): RuntimeStyleFunction<any> {
   return (props) => {
     return dedupe(args.map(f => typeof f === 'function' ? f(props) : '').join(''));
   };
