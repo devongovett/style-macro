@@ -1,143 +1,4 @@
-import type * as CSS from 'csstype';
-
-type CSSValue = string | number;
-type CustomValue = string | number | boolean;
-type Value = CustomValue | CustomValue[];
-type PropertyValueMap<T extends CSSValue = CSSValue> = {
-  [name in T]: string
-};
-
-type CustomProperty = `--${string}`;
-type CSSProperties = CSS.Properties & {
-  [k: CustomProperty]: CSSValue
-};
-
-type PropertyFunction<T extends Value> = (value: T, property: string) => [CSSProperties, string];
-
-interface Theme {
-  properties: {
-    [name: string]: PropertyValueMap | PropertyFunction<any> | string[],
-  },
-  conditions: {
-    [name: string]: string
-  }
-}
-
-type PropertyValue<T> =
-  T extends PropertyFunction<infer P>
-    ? P
-    : T extends PropertyValueMap<infer P>
-      ? P
-      : T extends string[]
-        ? T[number]
-        : never;
-
-type PropertyValue2<T> = PropertyValue<T> | CustomProperty | `[${string}]`;
-type Merge<T> = T extends any ? T : never;
-
-// Pre-compute value types for all theme properties ahead of time.
-type ThemeProperties<T extends Theme> = Merge<{
-  [K in keyof T['properties']]: Merge<PropertyValue2<T['properties'][K]>>
-}>;
-
-type Style<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = 
-  StaticProperties<T, C, R> & CustomProperties<T, C, R>;
-
-type StaticProperties<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = {
-  [Name in keyof T]?: StyleValue<T[Name], C, R>
-};
-
-type CustomProperties<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> = {
-  [key: CustomProperty]: CustomPropertyValue<T, keyof T, C, R>
-};
-
-// Infer the value type of custom property values from the `type` key, which references a theme property.
-type CustomPropertyValue<T extends ThemeProperties<Theme>, P extends keyof T, C extends string, R extends RenderProps<string>> = 
-  P extends any 
-    ? {type: P, value: StyleValue<T[P], C, R>}
-    : never;
-
-type RenderProps<K extends string> = {
-  [key in K]: any
-};
-
-type StyleValue<V extends Value, C extends string, R extends RenderProps<string>> = V | Conditional<V, C, R>;
-type Condition<T extends Theme> = (keyof T['conditions'] & string) | 'default';
-type Conditional<V extends Value, C extends string, R extends RenderProps<string>> = 
-  ThemeConditions<V, C, R> & DynamicConditions<V, C, R>
-
-type ThemeConditions<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [name in C]?: StyleValue<V, C, R>
-};
-
-// If render props are unknown, allow any custom conditions to be inferred.
-// Unfortunately this breaks "may only specify known properties" errors.
-type DynamicConditions<V extends Value, C extends string, R extends RenderProps<string>> = 
-  [R] extends [never] 
-    ? UnknownConditions<V, C>
-    : RenderPropConditions<V, C, R>;
-
-type UnknownConditions<V extends Value, C extends string> = {
-  [name: string]: StyleValue<V, C, never> | VariantMap<string, V, C, never>
-};
-
-type RenderPropConditions<V extends Value, C extends string, R extends RenderProps<string>> = 
-  BooleanRenderProps<V, C, R> & VariantRenderProps<V, C, R>;
-
-type BooleanConditionName = `is${Capitalize<string>}`;
-type BooleanRenderProps<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [K in Extract<keyof R, BooleanConditionName>]?: StyleValue<V, C, R>
-};
-
-type VariantRenderProps<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [K in Exclude<keyof R, BooleanConditionName>]?: VariantMap<R[K], V, C, R>
-};
-
-type Values<T, K extends keyof T = keyof T> = {
-  [k in K]: T[k]
-}[K];
-
-type VariantMap<K extends CSSValue, V extends Value, C extends string, R extends RenderProps<string>> = {
-  [k in K]?: StyleValue<V, C, R>
-};
-
-// These types are used to recursively extract all runtime conditions/variants in case an
-// explicit render prop generic type is not provided/inferred. This allows the returned function
-// to automatically accept the correct arguments based on the style definition.
-type ExtractConditionalValue<C extends keyof any, V> = V extends Value 
-  ? never
-  // Add the keys from this level for boolean conditions not in the theme.
-  : RuntimeConditionObject<Extract<keyof V, BooleanConditionName>, boolean>
-    // Add variant values for non-boolean named keys.
-    | Variants<V, Exclude<keyof V, C | BooleanConditionName>>
-    // Recursively include conditions from the next level.
-    | ExtractConditionalValue<C, 
-      | Values<V, Extract<keyof V, C | BooleanConditionName>>
-      // And skip over variants to get to the values.
-      | Values<Values<V, Exclude<keyof V, C | BooleanConditionName>>>
-    >;
-
-type RuntimeConditionObject<K, V> = K extends keyof any ?  { [P in K]?: V } : never;
-
-type Variants<T, K extends keyof T> = K extends any ? {
-  [k in K]?: keyof T[k]
-} : never;
-
-type InferCustomPropertyValue<T> = T extends {value: infer V} ? V : never;
-type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any, any>> = UnionToIntersection<
-  ExtractConditionalValue<C,
-    | Values<S, Exclude<keyof S, CustomProperty>> 
-    // Skip top-level object for custom properties and go straight to value.
-    | InferCustomPropertyValue<Values<S, Extract<keyof S, CustomProperty>>>
-  >
->;
-
-// If an render prop type was provided, use that so that we get autocomplete for conditions.
-// Otherwise, fall back to inferring the render props from the style definition itself.
-type RuntimeStyleFunction<R> = keyof R extends never ? () => string : (props: R) => string;
-type InferProps<R, C extends keyof any, S extends Style<any, any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : R;
-type StyleFunction<T extends ThemeProperties<Theme>, C extends string> = 
-  <R extends RenderProps<string> = never, S extends Style<T, C, R> = Style<T, C, R>>(style: S) => RuntimeStyleFunction<InferProps<R, C, S>>;
+import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, VariantMap, StyleFunction, StyleValue, ThemeProperties} from './types';
 
 export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
   return (value) => {
@@ -233,15 +94,15 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
 
         let cond = condition as Condition<T>;
         let val = value[cond]!;
-        if (typeof val == 'object' && val) {
-          for (let key in theme.conditions) {
-            if (key in value && !(key in val)) {
-              // @ts-ignore
-              val[key] = value[key];
-              // console.log(key, value[key])
-            }
-          }
-        }
+        // if (typeof val == 'object' && val) {
+        //   for (let key in theme.conditions) {
+        //     if (key in value && !(key in val)) {
+        //       // @ts-ignore
+        //       val[key] = value[key];
+        //       // console.log(key, value[key])
+        //     }
+        //   }
+        // }
         if (/^is[A-Z]/.test(cond)) {
           rules.push(compileCondition(cond, compileValue(conditions, property, themeProperty, val)));
         } else if (typeof val === 'object' && val) {
@@ -283,9 +144,9 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     } else {
       prelude += generateName(themePropertyKeys.indexOf(themeProperty), true);
     }
-    
+
     prelude += conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('');
-    
+
     let p = property.startsWith('--') ? property : kebab(property);
 
     let body = '';
@@ -430,75 +291,4 @@ export function raw(this: MacroContext | void, css: string) {
     });
   }
   return className;
-}
-
-// taken from: https://stackoverflow.com/questions/51603250/typescript-3-parameter-list-intersection-type/51604379#51604379
-type ArgTypes<T> = T extends (props: infer V) => any ? NullToObject<V> : never;
-type NullToObject<T> = T extends (null | undefined) ? {} : T;
-type BoxedTupleTypes<T extends any[]> = { [P in keyof T]: [ArgTypes<T[P]>] }[Exclude<keyof T, keyof any[]>];
-type UnboxIntersection<T> = T extends { 0: infer U } ? U : never;
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
-type Arg<R> = RuntimeStyleFunction<R> | null | undefined;
-type NoInfer<T> = [T, void][T extends any ? 0 : 1];
-
-// Two overloads:
-// 1. If a render props type is expected based on the return type, forward that type to all arguments.
-// 2. Otherwise, infer the return type based on the arguments.
-export function merge<R extends RenderProps<string> = never>(...args: Arg<NoInfer<R>>[]): RuntimeStyleFunction<R>;
-export function merge<T extends Arg<any>[]>(...args: T): RuntimeStyleFunction<UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>>;
-export function merge(...args: any[]): RuntimeStyleFunction<any> {
-  return (props) => {
-    return dedupe(args.map(f => typeof f === 'function' ? f(props) : '').join(''));
-  };
-}
-
-function dedupe(s: string) {
-  let properties = new Map<string, string>();
-  let i = 0;
-  while (i < s.length) {
-    while (i < s.length && s[i] === ' ') {
-      i++;
-    }
-
-    let start = i;
-    readValue(); // property index
-
-    // read conditions (up to the last segment)
-    let last = i;
-    while (i < s.length && s[i] !== ' ') {
-      last = i;
-      readValue();
-    }
-
-    properties.set(s.slice(start, last), s.slice(start, i));
-  }
-
-  function readValue() {
-    if (s[i] === '-') {
-      // the beginning and end of arbitrary values are marked with -
-      while (i < s.length && s[i] !== ' ') {
-        i++;
-        if (s[i] === '-') {
-          i++;
-          break;
-        }
-      }
-    } else {
-      while (i < s.length) {
-        if (s[i] === '_') {
-          i++;
-        } else {
-          i++;
-          break;
-        }
-      }
-    }
-  }
-
-  let res = '';
-  for (let v of properties.values()) {
-    res += ' ' + v;
-  }
-
-  return res;
 }

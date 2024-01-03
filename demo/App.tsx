@@ -2,7 +2,7 @@ import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RAC
 import {Check, Minus, SearchIcon, XIcon} from 'lucide-react';
 import { style } from '../default-theme.ts' with {type: 'macro'};
 import { raw } from '../style-macro.ts' with {type: 'macro'};
-import { merge } from '../style-macro.ts';
+import { merge } from '../runtime';
 
 export function App() {
   return (
@@ -60,6 +60,7 @@ const box = merge(focusRing, style({
       isPressed: {
         default: 'gray-800',
         dark: 'slate-200',
+        forcedColors: 'Highlight'
       },
       isInvalid: {
         default: 'red-700',
@@ -67,7 +68,8 @@ const box = merge(focusRing, style({
         forcedColors: 'Mark',
         isPressed: {
           default: 'red-800',
-          dark: 'red-700'
+          dark: 'red-700',
+          forcedColors: 'Mark'
         }
       },
       isDisabled: {
@@ -75,6 +77,29 @@ const box = merge(focusRing, style({
         dark: 'zinc-700',
         forcedColors: 'GrayText'
       }
+      // default: {
+      //   default: 'gray-700',
+      //   isPressed: 'gray-800',
+      //   isInvalid: {
+      //     default: 'red-700',
+      //     isPressed: 'red-800'
+      //   },
+      //   isDisabled: 'gray-200'
+      // },
+      // dark: {
+      //   default: 'slate-300',
+      //   isPressed: 'slate-200',
+      //   isInvalid: {
+      //     default: 'red-600',
+      //     isPressed: 'red-700'
+      //   },
+      //   isDisabled: 'zinc-700'
+      // },
+      // forcedColors: {
+      //   default: 'Highlight',
+      //   isInvalid: 'Mark',
+      //   isDisabled: 'GrayText'
+      // }
     }
   }
 }));
