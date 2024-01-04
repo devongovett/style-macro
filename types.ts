@@ -16,7 +16,7 @@ export type PropertyFunction<T extends Value> = (value: T, property: string) => 
 
 export interface Theme {
   properties: {
-    [name: string]: PropertyValueMap | PropertyFunction<any> | string[],
+    [name: string]: PropertyValueMap | PropertyFunction<any> | string[]
   },
   conditions: {
     [name: string]: string
@@ -40,7 +40,9 @@ type Merge<T> = T extends any ? T : never;
 
 // Pre-compute value types for all theme properties ahead of time.
 export type ThemeProperties<T extends Theme> = Merge<{
-  [K in keyof T['properties']]: Merge<PropertyValue2<T['properties'][K]>>
+  [K in keyof T['properties'] | keyof T['shorthands']]: K extends keyof T['properties'] 
+    ? Merge<PropertyValue2<T['properties'][K]>> 
+    : Merge<PropertyValue2<T['properties'][T['shorthands'][K][0]]>>
 }>;
 
 type Style<T extends ThemeProperties<Theme>, C extends string, R extends RenderProps<string>> =
@@ -138,7 +140,8 @@ type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any, any>
 
 // If an render prop type was provided, use that so that we get autocomplete for conditions.
 // Otherwise, fall back to inferring the render props from the style definition itself.
-export type RuntimeStyleFunction<R> = keyof R extends never ? () => string : (props: R) => string;
+type Keys<R> = [R] extends [never] ? never : keyof R;
+export type RuntimeStyleFunction<R> = Keys<R> extends never ? () => string : (props: R) => string;
 type InferProps<R, C extends keyof any, S extends Style<any, any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : R;
 export type StyleFunction<T extends ThemeProperties<Theme>, C extends string> =
   <R extends RenderProps<string> = never, S extends Style<T, C, R> = Style<T, C, R>>(style: S) => RuntimeStyleFunction<InferProps<R, C, S>>;

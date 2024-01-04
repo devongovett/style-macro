@@ -72,7 +72,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         for (let prop of theme.shorthands[key]) {
           rules.set(prop, compileValue([], prop, prop, value));
         }
-      } else {
+      } else if (themeProperty in theme.properties) {
         rules.set(key, compileValue([], key, themeProperty, value));
       }
     }
@@ -156,8 +156,11 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     }
 
     if (condition in theme.conditions) {
-      // return {prelude: theme.conditions[condition], body: rules, condition: ''};
-      return {prelude: `@layer ${generateName(themeConditionKeys.indexOf(condition) + 1)}`, body: [{prelude: theme.conditions[condition], body: rules, condition: ''}], condition: ''};
+      return {
+        prelude: `@layer ${generateName(themeConditionKeys.indexOf(condition) + 1)}`,
+        body: [{prelude: theme.conditions[condition], body: rules, condition: ''}],
+        condition: ''
+      };
     }
 
     return {prelude: '', condition, body: rules};
