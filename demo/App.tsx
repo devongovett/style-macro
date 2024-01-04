@@ -1,4 +1,4 @@
-import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RACButton, ButtonProps as RACButtonProps, DateValue, DateField as AriaDateField, DateInput as AriaDateInput, DateFieldProps, DateInputProps, DateSegment, Label, SearchFieldProps, SearchField as AriaSearchField, GroupProps, Group, InputProps, Input as RACInput} from 'react-aria-components';
+import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RACButton, ButtonProps as RACButtonProps, DateValue, DateField as AriaDateField, DateInput as AriaDateInput, DateFieldProps, DateInputProps, DateSegment, Label, SearchFieldProps, SearchField as AriaSearchField, GroupProps, Group, InputProps, Input as RACInput, CheckboxRenderProps} from 'react-aria-components';
 import {Check, Minus, SearchIcon, XIcon} from 'lucide-react';
 import { style } from '../default-theme.ts' with {type: 'macro'};
 import { raw } from '../style-macro.ts' with {type: 'macro'};
@@ -7,8 +7,10 @@ import { merge } from '../runtime';
 export function App() {
   return (
     <div className={style({display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'start'})()}>
-      <div className={style({backgroundColor: 'red-700', padding: 2, paddingStart: 8})()}>test</div>
-      <div className={style({backgroundColor: 'red-700', paddingStart: 8, padding: 2})()}>test</div>
+      <div className={style({backgroundColor: 'red-700', padding: 2, paddingX: 8})()}>test</div>
+      <div className={style({backgroundColor: 'red-700', paddingX: 8, padding: 2})()}>test</div>
+      <div className={merge(style({backgroundColor: 'red-700', padding: 2}), style({paddingX: 8}))()}>test</div>
+      <div className={merge(style({paddingX: 8}), style({backgroundColor: 'red-700', padding: 2}))()}>test</div>
       <Checkbox>Test</Checkbox>
       <Checkbox isInvalid>Test</Checkbox>
       <Checkbox isIndeterminate>Test</Checkbox>
@@ -36,7 +38,7 @@ const focusRing = style({
   outlineOffset: 2
 });
 
-const box = merge(focusRing, style({
+const box = merge<CheckboxRenderProps>(focusRing, style({
   width: 5,
   height: 5,
   borderRadius: 'md',
@@ -142,7 +144,7 @@ function Checkbox(props: CheckboxProps) {
       })}>
       {({isSelected, isIndeterminate, ...renderProps}) => (
         <>
-          <div className={box({isSelected: isSelected || isIndeterminate, ...renderProps})}>
+          <div className={box({isSelected: isSelected || isIndeterminate, isIndeterminate, ...renderProps})}>
             {isIndeterminate
               ? <Minus aria-hidden className={iconStyles(renderProps)} />
               : isSelected
@@ -161,7 +163,7 @@ interface ButtonProps extends RACButtonProps {
   variant: 'primary' | 'secondary' | 'destructive' | 'icon'
 }
 
-const button = merge(focusRing, style<ButtonRenderProps & {variant: 'primary' | 'secondary' | 'destructive' | 'icon'}>({
+const button = merge(focusRing, style<ButtonRenderProps & {variant: ButtonProps['variant']}>({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

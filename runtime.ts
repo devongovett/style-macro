@@ -15,11 +15,24 @@ export function merge<R extends RenderProps<string> = never>(...args: Arg<NoInfe
 export function merge<T extends Arg<any>[]>(...args: T): RuntimeStyleFunction<UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>>;
 export function merge(...args: any[]): RuntimeStyleFunction<any> {
   return (props) => {
-    return dedupe(args.map(f => typeof f === 'function' ? f(props) : '').join(''));
+    let map = new Map();
+    for (let f of args) {
+      if (typeof f === 'function') {
+        for (let [k, v] of parse(f(props))) {
+          map.set(k, v);
+        }
+      }
+    }
+    
+    let res = '';
+    for (let value of map.values()) {
+      res += value;
+    }
+    return res;
   };
 }
 
-function dedupe(s: string) {
+function parse(s: string) {
   let properties = new Map<string, string>();
   let i = 0;
   while (i < s.length) {
@@ -31,13 +44,15 @@ function dedupe(s: string) {
     readValue(); // property index
 
     // read conditions (up to the last segment)
-    let last = i;
+    let condition = i;
+    let value = i;
     while (i < s.length && s[i] !== ' ') {
-      last = i;
+      value = i;
       readValue();
     }
 
-    properties.set(s.slice(start, last), s.slice(start, i));
+    let property = s.slice(start, condition);
+    properties.set(property, (properties.get(property) || '') + ' ' + s.slice(start, i));
   }
 
   function readValue() {
@@ -62,10 +77,5 @@ function dedupe(s: string) {
     }
   }
 
-  let res = '';
-  for (let v of properties.values()) {
-    res += ' ' + v;
-  }
-
-  return res;
+  return properties;
 }
