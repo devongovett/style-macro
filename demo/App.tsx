@@ -7,6 +7,8 @@ import { merge } from '../runtime';
 export function App() {
   return (
     <div className={style({display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'start'})()}>
+      <div className={style({backgroundColor: 'red-700', padding: 2, paddingStart: 8})()}>test</div>
+      <div className={style({backgroundColor: 'red-700', paddingStart: 8, padding: 2})()}>test</div>
       <Checkbox>Test</Checkbox>
       <Checkbox isInvalid>Test</Checkbox>
       <Checkbox isIndeterminate>Test</Checkbox>
@@ -121,7 +123,7 @@ const iconStyles = style({
 
 function Checkbox(props: CheckboxProps) {
   return (
-    <RACCheckbox 
+    <RACCheckbox
       {...props}
       className={style({
         display: 'flex',

@@ -20,6 +20,9 @@ export interface Theme {
   },
   conditions: {
     [name: string]: string
+  },
+  shorthands: {
+    [name: string]: string[]
   }
 }
 

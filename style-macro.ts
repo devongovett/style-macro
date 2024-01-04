@@ -10,6 +10,10 @@ export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSPr
 export function createMappedProperty<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T>): PropertyFunction<T> {
   let keys = Object.keys(values);
   return (value) => {
+    let v = parseArbitraryValue(value);
+    if (v) {
+      return [fn(v[0]), v[1]];
+    }
     return [fn(values[value]), generateName(keys.indexOf(String(value)))];
   };
 }
@@ -18,6 +22,11 @@ type Color<C extends string> = C | `${C}/${number}`;
 export function createColorProperty<C extends string>(colors: PropertyValueMap<C>, property?: keyof CSSProperties): PropertyFunction<Color<C>> {
   let keys = Object.keys(colors);
   return (value: Color<C>, key: string) => {
+    let v = parseArbitraryValue(value);
+    if (v) {
+      return [{[property || key]: v[0]}, v[1]];
+    }
+
     let [color, opacity] = value.split('/');
     // @ts-ignore
     let c = colors[color];
@@ -25,6 +34,15 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
     let selector = generateName(keys.indexOf(color)) + (opacity ? opacity.replace('.', '-') : '');
     return [{[property || key]: css}, selector];
   };
+}
+
+function parseArbitraryValue(value: any) {
+  if (typeof value === 'string' && value.startsWith('--')) {
+    return [`var(${value})`, value];
+  } else if (typeof value === 'string' && value[0] === '[' && value[value.length - 1] === ']') {
+    let s = generateArbitraryValueSelector(value.slice(1, -1));
+    return [value.slice(1, -1), s];
+  }
 }
 
 interface MacroContext {
@@ -42,8 +60,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     }
     css += ';\n\n';
 
-    let js = 'let rules = "";\n';
-    let printedRules = new Set<string>();
+    let rules = new Map();
     for (let key in style) {
       let value = style[key]!;
       let themeProperty = key;
@@ -51,16 +68,25 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         themeProperty = value.type;
         value = value.value;
       }
-      let rules = compileValue([], key, themeProperty, value);
-      js += printJS(rules) + '\n';
-      for (let rule of rules) {
+      if (theme.shorthands[key]) {
+        for (let prop of theme.shorthands[key]) {
+          rules.set(prop, compileValue([], prop, prop, value));
+        }
+      } else {
+        rules.set(key, compileValue([], key, themeProperty, value));
+      }
+    }
+
+    let js = 'let rules = "";\n';
+    let printedRules = new Set<string>();
+    for (let propertyRules of rules.values()) {
+      js += printJS(propertyRules) + '\n';
+      for (let rule of propertyRules) {
         css += printRule(rule, printedRules) + '\n\n';
       }
     }
 
     js += 'return rules;';
-    // console.log(css)
-    // console.log(js);
 
     if (typeof this?.addAsset === 'function') {
       this.addAsset({
@@ -151,21 +177,21 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
 
     let body = '';
     if (themeProperty in theme.properties) {
-      if (typeof value === 'string' && value.startsWith('--')) {
-        prelude += value;
-        body = `${p}: var(${value})`;
-      } else if (typeof value === 'string' && value[0] === '[' && value[value.length - 1] === ']') {
-        prelude += generateArbitraryValueSelector(value.slice(1, -1));
-        body = `${p}: ${value.slice(1, -1)}`;
+      let v = theme.properties[themeProperty];
+      if (typeof v === 'function') {
+        let [obj, p] = v(value, property);
+        prelude += p;
+        for (let key in obj) {
+          // @ts-ignore
+          body += `${kebab(key)}: ${obj[key]};`
+        }
       } else {
-        let v = theme.properties[themeProperty];
-        if (typeof v === 'function') {
-          let [obj, p] = v(value, property);
-          prelude += p;
-          for (let key in obj) {
-            // @ts-ignore
-            body += `${kebab(key)}: ${obj[key]};`
-          }
+        if (typeof value === 'string' && value.startsWith('--')) {
+          prelude += value;
+          body = `${p}: var(${value})`;
+        } else if (typeof value === 'string' && value[0] === '[' && value[value.length - 1] === ']') {
+          prelude += generateArbitraryValueSelector(value.slice(1, -1));
+          body = `${p}: ${value.slice(1, -1)}`;
         } else if (Array.isArray(v)) {
           prelude += generateName(v.indexOf(String(value)));
           body = `${p}: ${value}`;
