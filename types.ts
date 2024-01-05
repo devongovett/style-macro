@@ -138,10 +138,23 @@ type RuntimeConditionsObject<C extends keyof any, S extends Style<any, any, any>
   >
 >;
 
+// Return an intersection between string and the used style props so we can prevent passing certain properties to components.
+type IncludedProperties<S> = Merge<{
+  [K in keyof S]: unknown
+}>;
+type Keys<R> = [R] extends [never] ? never : keyof R;
+export type RuntimeStyleFunction<S, R> = Keys<R> extends never ? () => string & S : (props: R) => string & S;
+
 // If an render prop type was provided, use that so that we get autocomplete for conditions.
 // Otherwise, fall back to inferring the render props from the style definition itself.
-type Keys<R> = [R] extends [never] ? never : keyof R;
-export type RuntimeStyleFunction<R> = Keys<R> extends never ? () => string : (props: R) => string;
 type InferProps<R, C extends keyof any, S extends Style<any, any, any>> = [R] extends [never] ? RuntimeConditionsObject<C, S> : R;
 export type StyleFunction<T extends ThemeProperties<Theme>, C extends string> =
-  <R extends RenderProps<string> = never, S extends Style<T, C, R> = Style<T, C, R>>(style: S) => RuntimeStyleFunction<InferProps<R, C, S>>;
+  <R extends RenderProps<string> = never, S extends Style<T, C, R> = Style<T, C, R>>(style: S) => RuntimeStyleFunction<IncludedProperties<S>, InferProps<R, C, S>>;
+
+// Creates a version of ThemeProperties with excluded keys mapped to never.
+// This allows creating a component prop that only accepts certain style props.
+type LimitTheme<T, P> = Merge<{
+  [K in keyof T]?: K extends P ? unknown : never
+}>;
+
+export type CSSProp<S, P extends string | number> = S extends StyleFunction<infer T, any> ? string & LimitTheme<T, P> : never;

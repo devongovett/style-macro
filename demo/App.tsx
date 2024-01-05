@@ -2,7 +2,8 @@ import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RAC
 import {Check, Minus, SearchIcon, XIcon} from 'lucide-react';
 import { style } from '../default-theme.ts' with {type: 'macro'};
 import { raw } from '../style-macro.ts' with {type: 'macro'};
-import { merge } from '../runtime';
+import { merge, mergeStyles } from '../runtime';
+import type { CSSProp } from '../types.ts';
 
 export function App() {
   return (
@@ -261,14 +262,16 @@ const button = merge(focusRing, style<ButtonRenderProps & {variant: ButtonProps[
   }
 }));
 
-function Button(props: ButtonProps) {
+type AllowedStyleProps = 'margin' | 'marginStart' | 'marginEnd' | 'visibility';
+interface MyButtonProps extends Omit<ButtonProps, 'className' | 'style'> {
+  css?: CSSProp<typeof style, AllowedStyleProps>
+}
+
+function Button(props: MyButtonProps) {
   return (
     <RACButton
       {...props}
-      className={merge(
-        typeof props.className === 'function' ? props.className : null,
-        renderProps => button({...renderProps, variant: props.variant})
-      )} />
+      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant}))} />
   );
 }
 
@@ -388,7 +391,7 @@ function SearchField(props: SearchFieldProps) {
         <FieldGroup>
           <SearchIcon aria-hidden className={style({width: 4, height: 4, marginStart: 2, color: {default: 'gray-500', dark: 'zinc-400', forcedColors: 'ButtonText'}})()} />
           <Input className={raw('&::-webkit-search-cancel-button { display: none }')} />
-          <Button variant="icon" className={() => style({marginEnd: 1, visibility: {isEmpty: 'hidden'}})({isEmpty})}>
+          <Button variant="icon" css={style({marginEnd: 1, visibility: {isEmpty: 'hidden'}})({isEmpty})}>
             <XIcon aria-hidden className={style({width: 4, height: 4})()} />
           </Button>
         </FieldGroup>

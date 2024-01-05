@@ -4,32 +4,39 @@ import {RuntimeStyleFunction, RenderProps, UnionToIntersection} from './types';
 type ArgTypes<T> = T extends (props: infer V) => any ? NullToObject<V> : never;
 type NullToObject<T> = T extends (null | undefined) ? {} : T;
 type BoxedTupleTypes<T extends any[]> = { [P in keyof T]: [ArgTypes<T[P]>] }[Exclude<keyof T, keyof any[]>];
+type BoxedReturnTypes<T extends any[]> = { [P in keyof T]: [InferReturn<T[P]>] }[Exclude<keyof T, keyof any[]>];
 type UnboxIntersection<T> = T extends { 0: infer U } ? U : never;
-type Arg<R> = RuntimeStyleFunction<R> | null | undefined;
+type Arg<X, R> = RuntimeStyleFunction<X, R> | null | undefined;
 type NoInfer<T> = [T, void][T extends any ? 0 : 1];
+type InferReturn<T> = T extends (props: any) => infer R ? NullToObject<R> : never;
+type InferReturnType<T extends any[]> = UnboxIntersection<UnionToIntersection<BoxedReturnTypes<T>>>;
 
 // Two overloads:
 // 1. If a render props type is expected based on the return type, forward that type to all arguments.
 // 2. Otherwise, infer the return type based on the arguments.
-export function merge<R extends RenderProps<string> = never>(...args: Arg<NoInfer<R>>[]): RuntimeStyleFunction<R>;
-export function merge<T extends Arg<any>[]>(...args: T): RuntimeStyleFunction<UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>>;
-export function merge(...args: any[]): RuntimeStyleFunction<any> {
+export function merge<R extends RenderProps<string> = never, X = {}>(...args: Arg<NoInfer<X>, NoInfer<R>>[]): RuntimeStyleFunction<X, R>;
+export function merge<T extends Arg<any, any>[]>(...args: T): RuntimeStyleFunction<InferReturnType<T>, UnboxIntersection<UnionToIntersection<BoxedTupleTypes<T>>>>;
+export function merge(...args: any[]): RuntimeStyleFunction<any, any> {
   return (props) => {
-    let map = new Map();
-    for (let f of args) {
-      if (typeof f === 'function') {
-        for (let [k, v] of parse(f(props))) {
-          map.set(k, v);
-        }
+    return mergeStyles(...args.map(f => typeof f === 'function' ? f(props) : null));
+  };
+}
+
+export function mergeStyles(...styles: (string | null | undefined)[]): string {
+  let map = new Map();
+  for (let style of styles) {
+    if (style) {
+      for (let [k, v] of parse(style)) {
+        map.set(k, v);
       }
     }
-    
-    let res = '';
-    for (let value of map.values()) {
-      res += value;
-    }
-    return res;
-  };
+  }
+  
+  let res = '';
+  for (let value of map.values()) {
+    res += value;
+  }
+  return res;
 }
 
 function parse(s: string) {
