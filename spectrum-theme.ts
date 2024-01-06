@@ -1,33 +1,64 @@
-import tailwindColors from 'tailwindcss/colors';
 import { createColorProperty, createMappedProperty, createTheme, createArbitraryProperty } from './style-macro.ts';
 import type * as CSS from 'csstype';
 import tokens from '@adobe/spectrum-tokens/dist/json/variables.json';
 
 function colorToken(token: typeof tokens['gray-25']) {
   return {
-    light: token.sets.light.value,
+    default: token.sets.light.value,
     dark: token.sets.dark.value
   };
+}
+
+function weirdColorToken(token: typeof tokens['accent-background-color-default']) {
+  return {
+    default: token.sets.light.sets.light.value,
+    dark: token.sets.dark.sets.dark.value
+  };
+}
+
+type ReplaceColor<S extends string> = S extends `${infer S}-color-${infer N}` ? `${S}-${N}` : S;
+
+function colorScale<S extends string>(scale: S): Record<ReplaceColor<Extract<keyof typeof tokens, `${S}-${number}`>>, ReturnType<typeof colorToken>> {
+  let res: any = {};
+  let re = new RegExp(`^${scale}-\\d+$`);
+  for (let token in tokens) {
+    if (re.test(token)) {
+      res[token.replace('-color', '')] = colorToken((tokens as any)[token]);
+    }
+  }
+  return res;
 }
 
 const color = {
   transparent: 'transparent',
   black: 'black',
   white: 'white',
-  
-  'gray-25': colorToken(tokens['gray-25']),
-  'gray-50': colorToken(tokens['gray-50']),
-  'gray-75': colorToken(tokens['gray-75']),
-  'gray-100': colorToken(tokens['gray-100']),
-  'gray-200': colorToken(tokens['gray-200']),
-  'gray-300': colorToken(tokens['gray-300']),
-  'gray-400': colorToken(tokens['gray-400']),
-  'gray-500': colorToken(tokens['gray-500']),
-  'gray-600': colorToken(tokens['gray-600']),
-  'gray-700': colorToken(tokens['gray-700']),
-  'gray-800': colorToken(tokens['gray-800']),
-  'gray-900': colorToken(tokens['gray-900']),
-  'gray-1000': colorToken(tokens['gray-1000']),
+
+  ...colorScale('gray'),
+  ...colorScale('blue'),
+  ...colorScale('red'),
+  ...colorScale('orange'),
+  ...colorScale('yellow'),
+  ...colorScale('chartreuse'),
+  ...colorScale('celery'),
+  ...colorScale('green'),
+  ...colorScale('seafoam'),
+  ...colorScale('cyan'),
+  ...colorScale('indigo'),
+  ...colorScale('purple'),
+  ...colorScale('fuchsia'),
+  ...colorScale('magenta'),
+  ...colorScale('pink'),
+  ...colorScale('turquoise'),
+  ...colorScale('brown'),
+  ...colorScale('silver'),
+  ...colorScale('cinnamon'),
+
+  ...colorScale('accent-color'),
+  ...colorScale('informative-color'),
+  ...colorScale('negative-color'),
+  ...colorScale('notice-color'),
+  ...colorScale('positive-color'),
 
   // High contrast mode.
   ButtonBorder: 'ButtonBorder',
@@ -180,10 +211,118 @@ const colorWithAlpha = createColorProperty(color);
 export const style = createTheme({
   properties: {
     // colors
-    color: colorWithAlpha,
-    backgroundColor: colorWithAlpha,
-    borderColor: colorWithAlpha,
-    outlineColor: colorWithAlpha,
+    color: createColorProperty({
+      ...color,
+      accent: {
+        ...colorToken(tokens['accent-content-color-default']),
+        isHovered: colorToken(tokens['accent-content-color-hover']),
+        isFocusVisible: colorToken(tokens['accent-content-color-key-focus']),
+        isPressed: colorToken(tokens['accent-content-color-down']),
+        // isSelected: colorToken(tokens['accent-content-color-selected']), // same as pressed
+      },
+      neutral: {
+        ...colorToken(tokens['neutral-content-color-default']),
+        isHovered: colorToken(tokens['neutral-content-color-hover']),
+        isFocusVisible: colorToken(tokens['neutral-content-color-key-focus']),
+        isPressed: colorToken(tokens['neutral-content-color-down']),
+        // isSelected: colorToken(tokens['neutral-subdued-content-color-selected']),
+      },
+      'neutral-subdued': {
+        ...colorToken(tokens['neutral-subdued-content-color-default']),
+        isHovered: colorToken(tokens['neutral-subdued-content-color-hover']),
+        isFocusVisible: colorToken(tokens['neutral-subdued-content-color-key-focus']),
+        isPressed: colorToken(tokens['neutral-subdued-content-color-down']),
+        // isSelected: colorToken(tokens['neutral-subdued-content-color-selected']),
+      },
+      negative: {
+        ...colorToken(tokens['negative-content-color-default']),
+        isHovered: colorToken(tokens['negative-content-color-hover']),
+        isFocusVisible: colorToken(tokens['negative-content-color-key-focus']),
+        isPressed: colorToken(tokens['negative-content-color-down']),
+      },
+      disabled: {
+        ...colorToken(tokens['disabled-content-color']),
+        forcedColors: 'GrayText'
+      }
+    }),
+    backgroundColor: createColorProperty({
+      ...color,
+      accent: {
+        ...weirdColorToken(tokens['accent-background-color-default']),
+        isHovered: weirdColorToken(tokens['accent-background-color-hover']),
+        isFocusVisible: weirdColorToken(tokens['accent-background-color-key-focus']),
+        isPressed: weirdColorToken(tokens['accent-background-color-down']),
+      },
+      neutral: {
+        ...colorToken(tokens['neutral-background-color-default']),
+        isHovered: colorToken(tokens['neutral-background-color-hover']),
+        isFocusVisible: colorToken(tokens['neutral-background-color-key-focus']),
+        isPressed: colorToken(tokens['neutral-background-color-down']),
+      },
+      'neutral-subdued': {
+        ...weirdColorToken(tokens['neutral-subdued-background-color-default']),
+        isHovered: weirdColorToken(tokens['neutral-subdued-background-color-hover']),
+        isFocusVisible: weirdColorToken(tokens['neutral-subdued-background-color-key-focus']),
+        isPressed: weirdColorToken(tokens['neutral-subdued-background-color-down']),
+      },
+      negative: {
+        ...weirdColorToken(tokens['negative-background-color-default']),
+        isHovered: weirdColorToken(tokens['negative-background-color-hover']),
+        isFocusVisible: weirdColorToken(tokens['negative-background-color-key-focus']),
+        isPressed: weirdColorToken(tokens['negative-background-color-down']),
+      },
+      informative: {
+        ...weirdColorToken(tokens['informative-background-color-default']),
+        isHovered: weirdColorToken(tokens['informative-background-color-hover']),
+        isFocusVisible: weirdColorToken(tokens['informative-background-color-key-focus']),
+        isPressed: weirdColorToken(tokens['informative-background-color-down']),
+      },
+      positive: {
+        ...weirdColorToken(tokens['positive-background-color-default']),
+        isHovered: weirdColorToken(tokens['positive-background-color-hover']),
+        isFocusVisible: weirdColorToken(tokens['positive-background-color-key-focus']),
+        isPressed: weirdColorToken(tokens['positive-background-color-down']),
+      },
+      notice: weirdColorToken(tokens['notice-background-color-default']),
+      gray: weirdColorToken(tokens['gray-background-color-default']),
+      red: weirdColorToken(tokens['red-background-color-default']),
+      orange: weirdColorToken(tokens['orange-background-color-default']),
+      yellow: weirdColorToken(tokens['yellow-background-color-default']),
+      chartreuse: weirdColorToken(tokens['chartreuse-background-color-default']),
+      celery: weirdColorToken(tokens['celery-background-color-default']),
+      green: weirdColorToken(tokens['green-background-color-default']),
+      seafoam: weirdColorToken(tokens['seafoam-background-color-default']),
+      cyan: weirdColorToken(tokens['cyan-background-color-default']),
+      blue: weirdColorToken(tokens['blue-background-color-default']),
+      indigo: weirdColorToken(tokens['indigo-background-color-default']),
+      purple: weirdColorToken(tokens['purple-background-color-default']),
+      fuchsia: weirdColorToken(tokens['fuchsia-background-color-default']),
+      magenta: weirdColorToken(tokens['magenta-background-color-default']),
+      disabled: {
+        ...colorToken(tokens['disabled-background-color']),
+        forcedColors: 'GrayText'
+      }
+    }),
+    borderColor: createColorProperty({
+      ...color,
+      negative: {
+        ...colorToken(tokens['negative-border-color-default']),
+        isHovered: colorToken(tokens['negative-border-color-hover']),
+        isFocusVisible: colorToken(tokens['negative-border-color-key-focus']),
+        isPressed: colorToken(tokens['negative-border-color-down']),
+      },
+      disabled: {
+        ...colorToken(tokens['disabled-border-color']),
+        forcedColors: 'GrayText'
+      }
+    }),
+    outlineColor: createColorProperty({
+      ...color,
+      'focus-ring': {
+        ...colorToken(tokens['focus-indicator-color']),
+        forcedColors: 'Highlight'
+      }
+    }),
     textDecorationColor: colorWithAlpha,
     accentColor: colorWithAlpha,
     caretColor: colorWithAlpha,

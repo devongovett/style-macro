@@ -1,4 +1,4 @@
-import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, VariantMap, StyleFunction, StyleValue, ThemeProperties} from './types';
+import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, VariantMap, StyleFunction, StyleValue, ThemeProperties, PropertyValueDefinition} from './types';
 
 export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
   return (value) => {
@@ -8,7 +8,8 @@ export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSPr
 }
 
 export function createMappedProperty<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T> | string[]): PropertyFunction<Value> {
-  let valueMap = createValueLookup(Array.isArray(values) ? values : Object.values(values));
+  let valueMap = createValueLookup(Array.isArray(values) ? values : Object.values(values).flatMap((v: any) => typeof v === 'object' ? Object.values(v) : [v]));
+
   return (value) => {
     let v = parseArbitraryValue(value);
     if (v) {
@@ -17,21 +18,15 @@ export function createMappedProperty<T extends CSSValue>(fn: (value: string) => 
 
     // @ts-ignore
     let val = Array.isArray(values) ? value : values[String(value)];
-    let p = valueMap.get(val)!;
-    if (typeof val !== 'object') {
-      val = {default: val};
-    }
-    let res: ReturnType<PropertyFunction<T>> = {};
-    for (let condition in val) {
-      res[condition] = [fn(val[condition] as any), p];
-    }
-    return res;
+    return mapConditionalValue(val, value => {
+      return [fn(value), valueMap.get(value)!];
+    });
   };
 }
 
 type Color<C extends string> = C | `${C}/${number}`;
 export function createColorProperty<C extends string>(colors: PropertyValueMap<C>, property?: keyof CSSProperties): PropertyFunction<Color<C>> {
-  let valueMap = createValueLookup(Object.values(colors))
+  let valueMap = createValueLookup(Object.values(colors).flatMap((v: any) => typeof v === 'object' ? Object.values(v) : [v]));
   return (value: Color<C>, key: string) => {
     let v = parseArbitraryValue(value);
     if (v) {
@@ -39,19 +34,26 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
     }
 
     let [color, opacity] = value.split('/');
-    let selector = valueMap.get((colors as any)[color])! + (opacity ? opacity.replace('.', '-') : '');
     // @ts-ignore
     let c = colors[color];
-    if (typeof c !== 'object') {
-      c = {default: c};
-    }
-    let res: ReturnType<PropertyFunction<any>> = {};
-    for (let condition in c) {
-      let css = opacity ? `rgb(from ${c[condition]} r g b / ${opacity}%)` : c[condition];
-      res[condition] = [{[property || key]: css}, selector];
+    return mapConditionalValue(c, value => {
+      let css = opacity ? `rgb(from ${value} r g b / ${opacity}%)` : value;
+      let selector = valueMap.get(value)! + (opacity ? opacity.replace('.', '-') : '');
+      return [{[property || key]: css}, selector];
+    });
+  };
+}
+
+function mapConditionalValue<T, U>(value: PropertyValueDefinition<T>, fn: (value: T) => U): PropertyValueDefinition<U> {
+  if (typeof value === 'object') {
+    let res: PropertyValueDefinition<U> = {};
+    for (let condition in value) {
+      res[condition] = mapConditionalValue((value as any)[condition], fn);
     }
     return res;
-  };
+  } else {
+    return fn(value);
+  }
 }
 
 function createValueLookup(values: Array<CSSValue>, atStart = false) {
@@ -88,6 +90,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
   }));
 
   return function style(this: MacroContext | void, style) {
+    // Declare layers for each condition in the theme ahead of time so the order is always correct.
     let css = '@layer ';
     let first = true;
     for (let name of themeConditionMap.values()) {
@@ -100,14 +103,19 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     }
     css += ';\n\n';
 
+    // Generate rules for each property.
     let rules = new Map();
     for (let key in style) {
       let value = style[key]!;
       let themeProperty = key;
+
+      // Get the type of custom properties in the theme.
       if (key.startsWith('--')) {
         themeProperty = value.type;
         value = value.value;
       }
+
+      // Expand shorthands to longhands so that merging works as expected.
       if (theme.shorthands[key]) {
         for (let prop of theme.shorthands[key]) {
           rules.set(prop, compileValue(new Set(), prop, prop, value));
@@ -117,6 +125,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
       }
     }
 
+    // Generate JS and CSS for each rule.
     let js = 'let rules = "";\n';
     let printedRules = new Set<string>();
     for (let propertyRules of rules.values()) {
@@ -141,39 +150,19 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
   function compileValue(conditions: Set<Condition<T>>, property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
-      if (value.default != null) {
-        rules.push(...compileCondition(conditions, 'default', compileValue(conditions, property, themeProperty, value.default)));
-      }
-
-      for (let condition in theme.conditions) {
-        if (value[condition] != null) {
-          rules.push(...compileCondition(conditions, condition, compileValue(new Set([...conditions, condition]), property, themeProperty, value[condition]!)));
-        }
-      }
-
-      // Runtime conditions.
       for (let condition in value) {
-        if (condition === 'default' || condition in theme.conditions) {
-          continue;
-        }
-
         let cond = condition as Condition<T>;
         let val = value[cond]!;
-        // if (typeof val == 'object' && val) {
-        //   for (let key in theme.conditions) {
-        //     if (key in value && !(key in val)) {
-        //       // @ts-ignore
-        //       val[key] = value[key];
-        //       // console.log(key, value[key])
-        //     }
-        //   }
-        // }
-        if (/^is[A-Z]/.test(cond)) {
-          rules.push(...compileCondition(conditions, cond, compileValue(conditions, property, themeProperty, val)));
+        if (condition === 'default' || condition in theme.conditions || /^is[A-Z]/.test(condition)) {
+          let subConditions = conditions;
+          if (condition in theme.conditions) {
+            subConditions = new Set([...conditions, condition]);
+          }
+          rules.push(...compileCondition(conditions, condition, compileValue(subConditions, property, themeProperty, val)));
         } else if (typeof val === 'object' && val) {
           let v = val as VariantMap<string, Value, Condition<T>, any>;
           for (let key in v) {
-            rules.push(...compileCondition(conditions, `${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, themeProperty, v[key]!)));
+            rules.push(...compileCondition(conditions, `${condition} === ${JSON.stringify(key)}`, compileValue(conditions, property, themeProperty, v[key]!)));
           }
         }
       }
@@ -211,6 +200,10 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
   }
 
   function compileRule(conditions: Set<Condition<T>>, property: string, themeProperty: string, value: Value): Rule[] {
+    // Generate selector. This consists of three parts:
+    // 1. Property. For custom properties we use a hash. For theme properties, we use the index within the theme.
+    // 2. Conditions. This uses the index within the theme.
+    // 3. Value. The index in the theme, or a hash for arbitrary values.
     let prelude = '.';
     if (property.startsWith('--')) {
       prelude += generateArbitraryValueSelector(property, true) + '-';
@@ -224,32 +217,41 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
 
     let propertyFunction = propertyFunctions.get(themeProperty);
     if (propertyFunction) {
+      // Expand value to conditional CSS values, and then to rules.
       let res = propertyFunction(value, property);
-      let rules: Rule[] = [];
-      for (let condition in res) {
-        let [obj, p] = res[condition];
-        let body = '';
-        for (let key in obj) {
-          // @ts-ignore
-          body += `${kebab(key)}: ${obj[key]};`
-        }
-        let selector = prelude;
-        if (condition in theme.conditions) {
-          selector += themeConditionMap.get(theme.conditions[condition]);
-        }
-        selector += p;
-        let rule: Rule = {
-          condition: '',
-          prelude: selector,
-          body
-        };
-        rules.push(...compileCondition(conditions, condition, [rule]));
-      }
-      return rules;
+      return conditionalToRules(res, prelude, conditions);
     } else {
       throw new Error('Unknown property ' + themeProperty);
     }
   }
+
+  function conditionalToRules(value: PropertyValueDefinition<[CSSProperties, string]>, prelude: string, conditions: Set<Condition<T>>): Rule[] {
+    if (!Array.isArray(value)) {
+      let rules: Rule[] = [];
+      for (let condition in value) {
+        let selector = prelude;
+        let subConditions = conditions;
+        if (condition in theme.conditions) {
+          selector += themeConditionMap.get(theme.conditions[condition]);
+          subConditions = new Set([...conditions, condition]);
+        }
+        rules.push(...compileCondition(conditions, condition, conditionalToRules((value as any)[condition], selector, subConditions)));
+      }
+      return rules;
+    } else {
+      let [obj, p] = value;
+      let body = '';
+      for (let key in obj) {
+        // @ts-ignore
+        body += `${kebab(key)}: ${obj[key]};`
+      }
+      return [{
+        condition: '',
+        prelude: prelude + p,
+        body
+      }];
+    }
+  }  
 }
 
 function kebab(property: string) {
@@ -265,6 +267,10 @@ interface Rule {
   body: string | Rule[]
 }
 
+// Generate a class name from a number, e.g. index within the theme.
+// This maps to an alphabet containing lower case letters, upper case letters, and numbers.
+// For numbers larger than 62, an underscore is prepended.
+// This encoding allows easy parsing to enable runtime merging by property.
 function generateName(index: number, atStart = false): string {
   if (index < 26) {
     // lower case letters
@@ -288,6 +294,7 @@ function generateName(index: number, atStart = false): string {
   return '_' + generateName(index - 62);
 }
 
+// For arbitrary values, we use a hash of the string to generate the class name.
 function generateArbitraryValueSelector(v: string, atStart = false) {
   let c = hash(v).toString(36);
   if (atStart && /^[0-9]/.test(c)) {
@@ -296,6 +303,8 @@ function generateArbitraryValueSelector(v: string, atStart = false) {
   return `-${c}`;
 }
 
+// djb2 hash function.
+// http://www.cse.yorku.ca/~oz/hash.html
 function hash(v: string) {
   let hash = 5381;
   for (let i = 0; i < v.length; i++) {
