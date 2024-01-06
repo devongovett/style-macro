@@ -8,16 +8,16 @@ export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSPr
 }
 
 export function createMappedProperty<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T> | string[]): PropertyFunction<Value> {
-  let keys = Array.isArray(values) ? values : Object.keys(values);
+  let valueMap = createValueLookup(Array.isArray(values) ? values : Object.values(values));
   return (value) => {
     let v = parseArbitraryValue(value);
     if (v) {
       return {default: [fn(v[0]), v[1]]};
     }
 
-    let p = generateName(keys.indexOf(String(value)));
     // @ts-ignore
     let val = Array.isArray(values) ? value : values[String(value)];
+    let p = valueMap.get(val)!;
     if (typeof val !== 'object') {
       val = {default: val};
     }
@@ -31,7 +31,7 @@ export function createMappedProperty<T extends CSSValue>(fn: (value: string) => 
 
 type Color<C extends string> = C | `${C}/${number}`;
 export function createColorProperty<C extends string>(colors: PropertyValueMap<C>, property?: keyof CSSProperties): PropertyFunction<Color<C>> {
-  let keys = Object.keys(colors);
+  let valueMap = createValueLookup(Object.values(colors))
   return (value: Color<C>, key: string) => {
     let v = parseArbitraryValue(value);
     if (v) {
@@ -39,7 +39,7 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
     }
 
     let [color, opacity] = value.split('/');
-    let selector = generateName(keys.indexOf(color)) + (opacity ? opacity.replace('.', '-') : '');
+    let selector = valueMap.get((colors as any)[color])! + (opacity ? opacity.replace('.', '-') : '');
     // @ts-ignore
     let c = colors[color];
     if (typeof c !== 'object') {
@@ -52,6 +52,16 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
     }
     return res;
   };
+}
+
+function createValueLookup(values: Array<CSSValue>, atStart = false) {
+  let map = new Map<CSSValue, string>();
+  for (let value of values) {
+    if (!map.has(value)) {
+      map.set(value, generateName(map.size, atStart));
+    }
+  }
+  return map;
 }
 
 function parseArbitraryValue(value: any) {
@@ -68,8 +78,8 @@ interface MacroContext {
 }
 
 export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, Condition<T>> {
-  let themePropertyKeys = Object.keys(theme.properties);
-  let themeConditionKeys = Object.keys(theme.conditions);
+  let themePropertyMap = createValueLookup(Object.keys(theme.properties), true);
+  let themeConditionMap = createValueLookup(['default', ...Object.values(theme.conditions)]);
   let propertyFunctions = new Map(Object.entries(theme.properties).map(([k, v]) => {
     if (typeof v === 'function') {
       return [k, v];
@@ -78,9 +88,15 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
   }));
 
   return function style(this: MacroContext | void, style) {
-    let css = '@layer a';
-    for (let i = 0; i < themeConditionKeys.length; i++) {
-      css += ', ' + generateName(i + 1);
+    let css = '@layer ';
+    let first = true;
+    for (let name of themeConditionMap.values()) {
+      if (first) {
+        first = false;
+      } else {
+        css += ', ';
+      }
+      css += name;
     }
     css += ';\n\n';
 
@@ -183,9 +199,9 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     if (condition in theme.conditions) {
       if (conditions.has(condition)) {
         return [{prelude: '', condition: '', body: rules}];
-      }  
+      }
       return [{
-        prelude: `@layer ${generateName(themeConditionKeys.indexOf(condition) + 1)}`,
+        prelude: `@layer ${themeConditionMap.get(theme.conditions[condition])}`,
         body: [{prelude: theme.conditions[condition], body: rules, condition: ''}],
         condition: ''
       }];
@@ -199,11 +215,11 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     if (property.startsWith('--')) {
       prelude += generateArbitraryValueSelector(property, true) + '-';
     } else {
-      prelude += generateName(themePropertyKeys.indexOf(themeProperty), true);
+      prelude += themePropertyMap.get(themeProperty);
     }
 
     for (let condition of conditions) {
-      prelude += generateName(themeConditionKeys.indexOf(condition));
+      prelude += themeConditionMap.get(theme.conditions[condition]);
     }
 
     let propertyFunction = propertyFunctions.get(themeProperty);
@@ -219,7 +235,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         }
         let selector = prelude;
         if (condition in theme.conditions) {
-          selector += generateName(themeConditionKeys.indexOf(condition));
+          selector += themeConditionMap.get(theme.conditions[condition]);
         }
         selector += p;
         let rule: Rule = {
