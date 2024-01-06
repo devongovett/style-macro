@@ -70,29 +70,58 @@ const color = {
   Mark: 'Mark',
 };
 
+export function baseColor(base: Extract<keyof typeof color, `${string}-${number}`>) {
+  let keys = Object.keys(color);
+  let index = keys.indexOf(base);
+  if (index === -1) {
+    throw new Error('Invalid base color ' + base);
+  }
+
+  return {
+    default: base,
+    isHovered: keys[index + 1],
+    isFocusVisible: keys[index + 1],
+    isPressed: keys[index + 2]
+  };
+}
+
 const spacing = {
   px: '1px',
   0: '0px',
-  0.5: '0.125rem',
-  1: '0.25rem',
-  1.5: '0.375rem',
-  2: '0.5rem',
-  2.5: '0.625rem',
-  3: '0.75rem',
-  3.5: '0.875rem',
-  4: '1rem',
-  5: '1.25rem',
-  6: '1.5rem',
-  7: '1.75rem',
-  8: '2rem',
-  9: '2.25rem',
-  10: '2.5rem',
-  11: '2.75rem',
-  12: '3rem',
-  14: '3.5rem',
-  16: '4rem',
-  20: '5rem',
-  24: '6rem',
+  0.5: '0.125rem', // 2px - spacing-50
+  // 0.1875rem // 3px
+  1: '0.25rem', // 4px
+  // 0.3125rem // 5px
+  1.5: '0.375rem', // 6px
+  // 0.4375rem // 7px
+  2: '0.5rem', // 8px - spacing-100
+  // 0.5625rem // 9px
+  2.5: '0.625rem', // 10px
+  // 0.6875rem // 11px
+  3: '0.75rem', // 12px - spacing-200
+  // 0.8125rem // 13px
+  3.5: '0.875rem', // 14px
+  // 0.9375rem // 15px
+  4: '1rem', // 16px - spacing-300
+  // 1.0625rem // 17px
+  // 1.125rem // 18px
+  // 1.1875rem // 19px
+  5: '1.25rem', // 20px
+  // 1.3125rem // 21px
+  // 1.375rem // 22px
+  // 1.4375rem // 23px
+  6: '1.5rem', // 24px - spacing-400
+  // 1.5625rem // 25px
+  7: '1.75rem', // 28px
+  8: '2rem', // 32px - spacing-500
+  9: '2.25rem', // 36px
+  10: '2.5rem', // 40px - spacing-600
+  11: '2.75rem', // 44px
+  12: '3rem', // 48px - spacing-700
+  14: '3.5rem', // 56px
+  16: '4rem', // 64px - spacing-800
+  20: '5rem', // 80px - spacing-900
+  24: '6rem', // 96px - spacing-1000
   28: '7rem',
   32: '8rem',
   36: '9rem',
@@ -155,18 +184,18 @@ const inset = {
 
 const borderWidth = {
   0: '0px',
-  1: '1px',
-  2: '2px',
-  4: '4px',
-  8: '8px',
+  1: '1px', // border-width-100
+  2: '2px', // border-width-200
+  4: '4px', // border-width-400
+  // 8: '8px',
 } as const;
 
 const radius = {
   none: '0px',
-  sm: '0.125rem',
-  default: '0.25rem',
+  sm: '0.125rem', // corner-radius-75
+  default: '0.25rem', // corner-radius-100
   md: '0.375rem',
-  lg: '0.5rem',
+  lg: '0.5rem', // corner-radius-200
   xl: '0.75rem',
   '2xl': '1rem',
   '3xl': '1.5rem',
@@ -341,7 +370,6 @@ export const style = createTheme({
       auto: 'auto',
       ...spacing
     },
-    gap: spacing,
     rowGap: spacing,
     columnGap: spacing,
     height: sizing,
@@ -459,19 +487,35 @@ export const style = createTheme({
       mono: 'ui-monospace, Menlo, Monaco, Consalas, "Courier New", monospace'
     },
     fontSize: {
-      xs: '0.75rem',
-      sm: '0.875rem',
-      base: '1rem',
-      lg: '1.125rem',
-      xl: '1.25rem',
-      '2xl': '1.5rem',
-      '3xl': '1.875rem',
-      '4xl': '2.25rem',
-      '5xl': '3rem',
-      '6xl': '3.75rem',
-      '7xl': '4.5rem',
-      '8xl': '6rem',
-      '9xl': '8rem'
+      xs: '0.75rem', // font-size-75
+      sm: '0.875rem', // font-size-100
+      base: '1rem', // font-size-200
+      lg: '1.125rem', // font-size-300
+      xl: '1.25rem', // font-size-400
+      '2xl': '1.5rem', // font-size-500 (25px??)
+      // font-size-600 = 1.75rem
+      // '3xl': '1.875rem', // 
+      // '4xl': '2.25rem',
+      // '5xl': '3rem',
+      // '6xl': '3.75rem',
+      // '7xl': '4.5rem',
+      // '8xl': '6rem',
+      // '9xl': '8rem'
+      // 50: tokens['font-size-50'].sets.desktop.value,
+      // 75: tokens['font-size-75'].sets.desktop.value,
+      // 100: tokens['font-size-100'].sets.desktop.value,
+      // 200: tokens['font-size-200'].sets.desktop.value,
+      // 300: tokens['font-size-300'].sets.desktop.value,
+      // 400: tokens['font-size-400'].sets.desktop.value,
+      // 500: tokens['font-size-500'].sets.desktop.value,
+      // 600: tokens['font-size-600'].sets.desktop.value,
+      // 700: tokens['font-size-700'].sets.desktop.value,
+      // 800: tokens['font-size-800'].sets.desktop.value,
+      // 900: tokens['font-size-900'].sets.desktop.value,
+      // 1000: tokens['font-size-1000'].sets.desktop.value,
+      // 1100: tokens['font-size-1100'].sets.desktop.value,
+      // 1200: tokens['font-size-1200'].sets.desktop.value,
+      // 1300: tokens['font-size-1300'].sets.desktop.value,
     },
     fontWeight: {
       thin: '100',
@@ -486,29 +530,31 @@ export const style = createTheme({
     },
     fontStyle: ['normal', 'italic'] as const,
     // fontVariantNumeric:
-    letterSpacing: {
-      tighter: '-0.05em',
-      tight: '-0.025em',
-      normal: '0em',
-      wide: '0.025em',
-      wider: '0.05em',
-      widest: '0.1em',
-    },
+    // letterSpacing: {
+    //   tighter: '-0.05em',
+    //   tight: '-0.025em',
+    //   normal: '0em',
+    //   wide: '0.025em',
+    //   wider: '0.05em',
+    //   widest: '0.1em',
+    // },
     lineHeight: {
-      none: '1',
-      tight: '1.25',
-      snug: '1.375',
-      normal: '1.5',
-      relaxed: '1.625',
-      loose: '2',
-      3: '.75rem',
-      4: '1rem',
-      5: '1.25rem',
-      6: '1.5rem',
-      7: '1.75rem',
-      8: '2rem',
-      9: '2.25rem',
-      10: '2.5rem',
+      // none: '1',
+      // tight: '1.25',
+      // snug: '1.375',
+      // normal: '1.5',
+      // relaxed: '1.625',
+      // loose: '2',
+      // 3: '.75rem',
+      // 4: '1rem',
+      // 5: '1.25rem',
+      // 6: '1.5rem',
+      // 7: '1.75rem',
+      // 8: '2rem',
+      // 9: '2.25rem',
+      // 10: '2.5rem',
+      100: tokens['line-height-100'].value,
+      200: tokens['line-height-200'].value,
     },
     listStyleType: ['none', 'dist', 'decimal'] as const,
     listStylePosition: ['inside', 'outside'] as const,
@@ -516,24 +562,24 @@ export const style = createTheme({
     textAlign: ['start', 'center', 'end', 'justify'] as const,
     verticalAlign: ['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super'] as const,
     textDecoration: ['underline', 'overline', 'line-through', 'none'] as const,
-    textDecorationStyle: ['solid', 'double', 'dotted', 'dashed', 'wavy'] as const,
-    textDecorationThickness: {
-      auto: 'auto',
-      'from-font': 'from-font',
-      0: '0px',
-      1: '1px',
-      2: '2px',
-      4: '4px',
-      8: '8px',
-    },
-    textUnderlineOffset: {
-      auto: 'auto',
-      0: '0px',
-      1: '1px',
-      2: '2px',
-      4: '4px',
-      8: '8px',
-    },
+    // textDecorationStyle: ['solid', 'double', 'dotted', 'dashed', 'wavy'] as const,
+    // textDecorationThickness: {
+    //   auto: 'auto',
+    //   'from-font': 'from-font',
+    //   0: '0px',
+    //   1: '1px',
+    //   2: '2px',
+    //   4: '4px',
+    //   8: '8px',
+    // },
+    // textUnderlineOffset: {
+    //   auto: 'auto',
+    //   0: '0px',
+    //   1: '1px',
+    //   2: '2px',
+    //   4: '4px',
+    //   8: '8px',
+    // },
     textOverflow: ['ellipsis', 'clip'] as const,
     truncate: createArbitraryProperty((_value: true) => ({
       overflow: 'hidden',
@@ -580,20 +626,8 @@ export const style = createTheme({
     // filter, backdropFilter
 
     outlineStyle: ['none', 'solid', 'dashed', 'dotted', 'double'] as const,
-    outlineOffset: {
-      0: '0px',
-      1: '1px',
-      2: '2px',
-      4: '4px',
-      8: '8px',
-    },
-    outlineWidth: {
-      0: '0px',
-      1: '1px',
-      2: '2px',
-      4: '4px',
-      8: '8px',
-    },
+    outlineOffset: borderWidth,
+    outlineWidth: borderWidth,
 
     transition: createMappedProperty(value => ({
       transitionProperty: value,
@@ -735,6 +769,7 @@ export const style = createTheme({
     placeItems: ['alignItems', 'justifyItems'] as const,
     placeContent: ['alignContent', 'justifyContent'] as const,
     placeSelf: ['alignSelf', 'justifySelf'] as const,
+    gap: ['rowGap', 'columnGap'] as const,
     overflow: ['overflowX', 'overflowY'] as const,
     overscrollBehavior: ['overscrollBehaviorX', 'overscrollBehaviorY'] as const
   },
