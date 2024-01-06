@@ -4,7 +4,7 @@ export type CSSValue = string | number;
 export type CustomValue = string | number | boolean;
 export type Value = CustomValue | CustomValue[];
 export type PropertyValueMap<T extends CSSValue = CSSValue> = {
-  [name in T]: string
+  [name in T]: string | {[condition: string]: string}
 };
 
 export type CustomProperty = `--${string}`;
@@ -12,7 +12,7 @@ export type CSSProperties = CSS.Properties & {
   [k: CustomProperty]: CSSValue
 };
 
-export type PropertyFunction<T extends Value> = (value: T, property: string) => [CSSProperties, string];
+export type PropertyFunction<T extends Value> = (value: T, property: string) => {[condition: string]: [CSSProperties, string]};
 
 export interface Theme {
   properties: {

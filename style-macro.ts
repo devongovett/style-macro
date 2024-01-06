@@ -3,18 +3,29 @@ import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap,
 export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
   return (value) => {
     let selector = Array.isArray(value) ? value.map(v => generateArbitraryValueSelector(String(v))).join('') : generateArbitraryValueSelector(String(value));
-    return [fn(value), selector];
+    return {default: [fn(value), selector]};
   };
 }
 
-export function createMappedProperty<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T>): PropertyFunction<T> {
-  let keys = Object.keys(values);
+export function createMappedProperty<T extends CSSValue>(fn: (value: string) => CSSProperties, values: PropertyValueMap<T> | string[]): PropertyFunction<Value> {
+  let keys = Array.isArray(values) ? values : Object.keys(values);
   return (value) => {
     let v = parseArbitraryValue(value);
     if (v) {
-      return [fn(v[0]), v[1]];
+      return {default: [fn(v[0]), v[1]]};
     }
-    return [fn(values[value]), generateName(keys.indexOf(String(value)))];
+
+    let p = generateName(keys.indexOf(String(value)));
+    // @ts-ignore
+    let val = Array.isArray(values) ? value : values[String(value)];
+    if (typeof val !== 'object') {
+      val = {default: val};
+    }
+    let res: ReturnType<PropertyFunction<T>> = {};
+    for (let condition in val) {
+      res[condition] = [fn(val[condition] as any), p];
+    }
+    return res;
   };
 }
 
@@ -24,15 +35,22 @@ export function createColorProperty<C extends string>(colors: PropertyValueMap<C
   return (value: Color<C>, key: string) => {
     let v = parseArbitraryValue(value);
     if (v) {
-      return [{[property || key]: v[0]}, v[1]];
+      return {default: [{[property || key]: v[0]}, v[1]]};
     }
 
     let [color, opacity] = value.split('/');
+    let selector = generateName(keys.indexOf(color)) + (opacity ? opacity.replace('.', '-') : '');
     // @ts-ignore
     let c = colors[color];
-    let css = opacity ? `rgb(from ${c} r g b / ${opacity}%)` : c;
-    let selector = generateName(keys.indexOf(color)) + (opacity ? opacity.replace('.', '-') : '');
-    return [{[property || key]: css}, selector];
+    if (typeof c !== 'object') {
+      c = {default: c};
+    }
+    let res: ReturnType<PropertyFunction<any>> = {};
+    for (let condition in c) {
+      let css = opacity ? `rgb(from ${c[condition]} r g b / ${opacity}%)` : c[condition];
+      res[condition] = [{[property || key]: css}, selector];
+    }
+    return res;
   };
 }
 
@@ -52,6 +70,12 @@ interface MacroContext {
 export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, Condition<T>> {
   let themePropertyKeys = Object.keys(theme.properties);
   let themeConditionKeys = Object.keys(theme.conditions);
+  let propertyFunctions = new Map(Object.entries(theme.properties).map(([k, v]) => {
+    if (typeof v === 'function') {
+      return [k, v];
+    }
+    return [k, createMappedProperty(value => ({[k]: value}), v)];
+  }));
 
   return function style(this: MacroContext | void, style) {
     let css = '@layer a';
@@ -70,10 +94,10 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
       }
       if (theme.shorthands[key]) {
         for (let prop of theme.shorthands[key]) {
-          rules.set(prop, compileValue([], prop, prop, value));
+          rules.set(prop, compileValue(new Set(), prop, prop, value));
         }
       } else if (themeProperty in theme.properties) {
-        rules.set(key, compileValue([], key, themeProperty, value));
+        rules.set(key, compileValue(new Set(), key, themeProperty, value));
       }
     }
 
@@ -98,17 +122,16 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     return new Function('props', js) as any;
   }
 
-  function compileValue(conditions: Condition<T>[], property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
+  function compileValue(conditions: Set<Condition<T>>, property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
       if (value.default != null) {
-        rules.push(compileCondition('default', compileValue(conditions, property, themeProperty, value.default)));
+        rules.push(...compileCondition(conditions, 'default', compileValue(conditions, property, themeProperty, value.default)));
       }
 
       for (let condition in theme.conditions) {
         if (value[condition] != null) {
-          let c = conditions.concat(condition);
-          rules.push(compileCondition(condition, compileValue(c, property, themeProperty, value[condition]!)));
+          rules.push(...compileCondition(conditions, condition, compileValue(new Set([...conditions, condition]), property, themeProperty, value[condition]!)));
         }
       }
 
@@ -130,43 +153,48 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         //   }
         // }
         if (/^is[A-Z]/.test(cond)) {
-          rules.push(compileCondition(cond, compileValue(conditions, property, themeProperty, val)));
+          rules.push(...compileCondition(conditions, cond, compileValue(conditions, property, themeProperty, val)));
         } else if (typeof val === 'object' && val) {
           let v = val as VariantMap<string, Value, Condition<T>, any>;
           for (let key in v) {
-            rules.push(compileCondition(`${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, themeProperty, v[key]!)));
+            rules.push(...compileCondition(conditions, `${cond} === ${JSON.stringify(key)}`, compileValue(conditions, property, themeProperty, v[key]!)));
           }
         }
       }
       return rules;
-    } else if (conditions.length === 0) {
-      return [{
-        prelude: '@layer a',
-        body: [compileRule(conditions, property, themeProperty, value)],
-        condition: ''
-      }]
     } else {
-      return [compileRule(conditions, property, themeProperty, value)];
+      return compileRule(conditions, property, themeProperty, value);
     }
   }
 
-  function compileCondition(condition: string, rules: Rule[]): Rule {
+  function compileCondition(conditions: Set<Condition<T>>, condition: string, rules: Rule[]): Rule[] {
     if (condition === 'default') {
-      return {prelude: '', condition: '', body: rules};
+      if (conditions.size === 0) {
+        return [{
+          prelude: '@layer a',
+          body: rules,
+          condition: ''
+        }];
+      }
+
+      return [{prelude: '', condition: '', body: rules}];
     }
 
     if (condition in theme.conditions) {
-      return {
+      if (conditions.has(condition)) {
+        return [{prelude: '', condition: '', body: rules}];
+      }  
+      return [{
         prelude: `@layer ${generateName(themeConditionKeys.indexOf(condition) + 1)}`,
         body: [{prelude: theme.conditions[condition], body: rules, condition: ''}],
         condition: ''
-      };
+      }];
     }
 
-    return {prelude: '', condition, body: rules};
+    return [{prelude: '', condition, body: rules}];
   }
 
-  function compileRule(conditions: Condition<T>[], property: string, themeProperty: string, value: Value): Rule {
+  function compileRule(conditions: Set<Condition<T>>, property: string, themeProperty: string, value: Value): Rule[] {
     let prelude = '.';
     if (property.startsWith('--')) {
       prelude += generateArbitraryValueSelector(property, true) + '-';
@@ -174,49 +202,44 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
       prelude += generateName(themePropertyKeys.indexOf(themeProperty), true);
     }
 
-    prelude += conditions.map(c => generateName(themeConditionKeys.indexOf(c))).join('');
+    for (let condition of conditions) {
+      prelude += generateName(themeConditionKeys.indexOf(condition));
+    }
 
-    let p = property.startsWith('--') ? property : kebab(property);
-
-    let body = '';
-    if (themeProperty in theme.properties) {
-      let v = theme.properties[themeProperty];
-      if (typeof v === 'function') {
-        let [obj, p] = v(value, property);
-        prelude += p;
+    let propertyFunction = propertyFunctions.get(themeProperty);
+    if (propertyFunction) {
+      let res = propertyFunction(value, property);
+      let rules: Rule[] = [];
+      for (let condition in res) {
+        let [obj, p] = res[condition];
+        let body = '';
         for (let key in obj) {
           // @ts-ignore
           body += `${kebab(key)}: ${obj[key]};`
         }
-      } else {
-        if (typeof value === 'string' && value.startsWith('--')) {
-          prelude += value;
-          body = `${p}: var(${value})`;
-        } else if (typeof value === 'string' && value[0] === '[' && value[value.length - 1] === ']') {
-          prelude += generateArbitraryValueSelector(value.slice(1, -1));
-          body = `${p}: ${value.slice(1, -1)}`;
-        } else if (Array.isArray(v)) {
-          prelude += generateName(v.indexOf(String(value)));
-          body = `${p}: ${value}`;
-        } else if (typeof value !== 'object') {
-          let val = String(value);
-          prelude += generateName(Object.keys(v).indexOf(val));
-          body = `${p}: ${v[val]}`;
-        } else {
-          throw new Error(`Invalid value: ${value}`);
+        let selector = prelude;
+        if (condition in theme.conditions) {
+          selector += generateName(themeConditionKeys.indexOf(condition));
         }
+        selector += p;
+        let rule: Rule = {
+          condition: '',
+          prelude: selector,
+          body
+        };
+        rules.push(...compileCondition(conditions, condition, [rule]));
       }
+      return rules;
+    } else {
+      throw new Error('Unknown property ' + themeProperty);
     }
-
-    return {
-      condition: '',
-      prelude,
-      body
-    };
   }
 }
 
 function kebab(property: string) {
+  if (property.startsWith('--')) {
+    return property;
+  }
   return property.replace(/([a-z])([A-Z])/g, (_, a, b) => `${a}-${b.toLowerCase()}`);
 }
 
