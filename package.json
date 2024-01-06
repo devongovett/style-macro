@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@adobe/spectrum-tokens": "13.0.0-beta.8",
     "csstype": "^3.1.3",
     "tailwindcss": "^3.4.0"
   },
