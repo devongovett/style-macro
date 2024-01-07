@@ -79,7 +79,7 @@ interface MacroContext {
   addAsset(asset: {type: string, content: string}): void
 }
 
-export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, Condition<T>> {
+export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, "default" | (keyof T["conditions"] & string)> {
   let themePropertyMap = createValueLookup(Object.keys(theme.properties), true);
   let themeConditionMap = createValueLookup(['default', ...Object.values(theme.conditions)]);
   let propertyFunctions = new Map(Object.entries(theme.properties).map(([k, v]) => {
@@ -174,14 +174,6 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
 
   function compileCondition(conditions: Set<Condition<T>>, condition: string, rules: Rule[]): Rule[] {
     if (condition === 'default') {
-      if (conditions.size === 0) {
-        return [{
-          prelude: '@layer a',
-          body: rules,
-          condition: ''
-        }];
-      }
-
       return [{prelude: '', condition: '', body: rules}];
     }
 
@@ -212,7 +204,9 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     }
 
     for (let condition of conditions) {
-      prelude += themeConditionMap.get(theme.conditions[condition]);
+      if (condition in theme.conditions) {
+        prelude += themeConditionMap.get(theme.conditions[condition]);
+      }
     }
 
     let propertyFunction = propertyFunctions.get(themeProperty);
@@ -233,6 +227,8 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         let subConditions = conditions;
         if (condition in theme.conditions) {
           selector += themeConditionMap.get(theme.conditions[condition]);
+        }
+        if (condition in theme.conditions) {
           subConditions = new Set([...conditions, condition]);
         }
         rules.push(...compileCondition(conditions, condition, conditionalToRules((value as any)[condition], selector, subConditions)));
@@ -245,13 +241,23 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         // @ts-ignore
         body += `${kebab(key)}: ${obj[key]};`
       }
-      return [{
+      let rules =[{
         condition: '',
         prelude: prelude + p,
         body
       }];
+
+      if (conditions.size === 0) {
+        return [{
+          prelude: '@layer a',
+          body: rules,
+          condition: ''
+        }];
+      }
+
+      return rules;
     }
-  }  
+  }
 }
 
 function kebab(property: string) {
