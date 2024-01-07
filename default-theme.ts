@@ -792,6 +792,7 @@ export const style = createTheme({
     placeContent: ['alignContent', 'justifyContent'] as const,
     placeSelf: ['alignSelf', 'justifySelf'] as const,
     gap: ['rowGap', 'columnGap'] as const,
+    size: ['width', 'height'] as const,
     overflow: ['overflowX', 'overflowY'] as const,
     overscrollBehavior: ['overscrollBehaviorX', 'overscrollBehaviorY'] as const
   },

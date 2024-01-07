@@ -43,7 +43,7 @@ export function App() {
         <Button variant="secondary" style="outline" staticColor="white">Test</Button>
         <Button variant="secondary" style="outline" staticColor="white" isDisabled>Test</Button>
       </div>
-      <div className={style({padding: 2, backgroundColor: {default: 'yellow-400', dark: 'orange-800'}, display: 'flex', flexDirection: 'column', gap: 2})()}>
+      <div className={style({padding: 2, backgroundColor: {default: 'yellow-400', dark: 'yellow-1100'}, display: 'flex', flexDirection: 'column', gap: 2})()}>
         <Button variant="primary" style="fill" staticColor="black">Test</Button>
         <Button variant="primary" style="fill" staticColor="black" isDisabled>Test</Button>
         <Button variant="secondary" style="fill" staticColor="black">Test</Button>
@@ -73,9 +73,8 @@ const focusRing = style({
 });
 
 const box = merge<CheckboxRenderProps>(focusRing, style({
-  width: 5,
-  height: 5,
-  borderRadius: 'md',
+  size: 5,
+  borderRadius: 'sm',
   flexShrink: 0,
   display: 'flex',
   alignItems: 'center',
@@ -99,7 +98,10 @@ const box = merge<CheckboxRenderProps>(focusRing, style({
         ...baseColor('red-600'),
         forcedColors: 'Mark'
       },
-      isDisabled: 'disabled'
+      isDisabled: {
+        default: 'disabled',
+        forcedColors: 'GrayText'
+      }
       // default: 'gray-700',
       // // dark: 'slate-300',
       // forcedColors: 'Highlight',
@@ -256,29 +258,27 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
     }
   },
   borderColor: {
-    // default: {
-      variant: {
-        primary: baseColor('gray-800'),
-        secondary: baseColor('gray-300')
-      },
-      isDisabled: 'disabled',
-      staticColor: {
-        white: {
-          variant: {
-            primary: baseColor('transparent-white-800'),
-            secondary: baseColor('transparent-white-300')
-          },
-          isDisabled: 'transparent-white-300'
+    variant: {
+      primary: baseColor('gray-800'),
+      secondary: baseColor('gray-300')
+    },
+    isDisabled: 'disabled',
+    staticColor: {
+      white: {
+        variant: {
+          primary: baseColor('transparent-white-800'),
+          secondary: baseColor('transparent-white-300')
         },
-        black: {
-          variant: {
-            primary: baseColor('transparent-black-800'),
-            secondary: baseColor('transparent-black-300')
-          },
-          isDisabled: 'transparent-black-300'
-        }
+        isDisabled: 'transparent-white-300'
       },
-    // },
+      black: {
+        variant: {
+          primary: baseColor('transparent-black-800'),
+          secondary: baseColor('transparent-black-300')
+        },
+        isDisabled: 'transparent-black-300'
+      }
+    },
     forcedColors: {
       default: 'ButtonBorder',
       isHovered: 'Highlight',
@@ -287,58 +287,56 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   },
   fontWeight: 'bold',
   backgroundColor: {
-    // default: {
-      style: {
-        fill: {
-          variant: {
-            primary: 'neutral',
-            secondary: baseColor('gray-100'),
-            accent: 'accent',
-            negative: 'negative'
+    style: {
+      fill: {
+        variant: {
+          primary: 'neutral',
+          secondary: baseColor('gray-100'),
+          accent: 'accent',
+          negative: 'negative'
+        },
+        isDisabled: 'disabled'
+      },
+      outline: {
+        default: 'transparent',
+        isHovered: 'gray-100',
+        isPressed: 'gray-100',
+      }
+    },
+    staticColor: {
+      white: {
+        style: {
+          fill: {
+            variant: {
+              primary: baseColor('transparent-white-800'),
+              secondary: baseColor('transparent-white-100')
+            },
+            isDisabled: 'transparent-white-100'
           },
-          isDisabled: 'disabled'
-        },
-        outline: {
-          default: 'transparent',
-          isHovered: 'gray-100',
-          isPressed: 'gray-100',
-        }
-      },
-      staticColor: {
-        white: {
-          style: {
-            fill: {
-              variant: {
-                primary: baseColor('transparent-white-800'),
-                secondary: baseColor('transparent-white-100')
-              },
-              isDisabled: 'transparent-white-100'
-            },
-            outline: {
-              default: 'transparent',
-              isHovered: 'transparent-white-100',
-              isPressed: 'transparent-white-100'
-            }
-          }
-        },
-        black: {
-          style: {
-            fill: {
-              variant: {
-                primary: baseColor('transparent-black-800'),
-                secondary: baseColor('transparent-black-100')
-              },
-              isDisabled: 'transparent-black-100'
-            },
-            outline: {
-              default: 'transparent',
-              isHovered: 'transparent-black-100',
-              isPressed: 'transparent-black-100'
-            }
+          outline: {
+            default: 'transparent',
+            isHovered: 'transparent-white-100',
+            isPressed: 'transparent-white-100'
           }
         }
       },
-    // },
+      black: {
+        style: {
+          fill: {
+            variant: {
+              primary: baseColor('transparent-black-800'),
+              secondary: baseColor('transparent-black-100')
+            },
+            isDisabled: 'transparent-black-100'
+          },
+          outline: {
+            default: 'transparent',
+            isHovered: 'transparent-black-100',
+            isPressed: 'transparent-black-100'
+          }
+        }
+      }
+    },
     forcedColors: {
       style: {
         fill: {
@@ -351,46 +349,44 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
     }
   },
   color: {
-    // default: {
-      style: {
-        fill: {
-          variant: {
-            primary: 'gray-25',
-            secondary: 'neutral',
-            accent: 'white',
-            negative: 'white'
-          },
-          isDisabled: 'disabled'
+    style: {
+      fill: {
+        variant: {
+          primary: 'gray-25',
+          secondary: 'neutral',
+          accent: 'white',
+          negative: 'white'
         },
-        outline: 'neutral'
+        isDisabled: 'disabled'
       },
-      staticColor: {
-        white: {
-          style: {
-            fill: {
-              variant: {
-                primary: 'black',
-                secondary: baseColor('transparent-white-800')
-              }
-            },
-            outline: baseColor('transparent-white-800'),
+      outline: 'neutral'
+    },
+    staticColor: {
+      white: {
+        style: {
+          fill: {
+            variant: {
+              primary: 'black',
+              secondary: baseColor('transparent-white-800')
+            }
           },
-          isDisabled: 'transparent-white-400'
+          outline: baseColor('transparent-white-800'),
         },
-        black: {
-          style: {
-            fill: {
-              variant: {
-                primary: 'white',
-                secondary: baseColor('transparent-black-800'),
-              }
-            },
-            outline: baseColor('transparent-black-800'),
-          },
-          isDisabled: 'transparent-black-400'
-        }
+        isDisabled: 'transparent-white-400'
       },
-    // },
+      black: {
+        style: {
+          fill: {
+            variant: {
+              primary: 'white',
+              secondary: baseColor('transparent-black-800'),
+            }
+          },
+          outline: baseColor('transparent-black-800'),
+        },
+        isDisabled: 'transparent-black-400'
+      }
+    },
     forcedColors: {
       style: {
         fill: {
@@ -403,6 +399,13 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
         }
       },
     }
+  },
+  outlineColor: {
+    staticColor: {
+      white: 'white',
+      black: 'black'
+    },
+    forcedColors: 'Highlight'
   },
   forcedColorAdjust: 'none'
 }));

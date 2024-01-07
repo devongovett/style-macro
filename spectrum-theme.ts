@@ -207,13 +207,17 @@ const borderWidth = {
 
 const radius = {
   none: '0px',
-  sm: '0.125rem', // corner-radius-75
-  default: '0.25rem', // corner-radius-100
-  md: '0.375rem',
-  lg: '0.5rem', // corner-radius-200
-  xl: '0.75rem',
-  '2xl': '1rem',
-  '3xl': '1.5rem',
+  // sm: '0.125rem', // corner-radius-75
+  // default: '0.25rem', // corner-radius-100
+  // md: '0.375rem',
+  // lg: '0.5rem', // corner-radius-200
+  // xl: '0.75rem',
+  // '2xl': '1rem',
+  // '3xl': '1.5rem',
+  sm: '0.25rem', // 4px
+  default: '0.5rem', // 8px
+  lg: '0.625rem', // 10px
+  xl: '1rem', // 16px
   full: '9999px',
 };
 
@@ -364,7 +368,7 @@ export const style = createTheme({
       ...color,
       'focus-ring': {
         ...colorToken(tokens['focus-indicator-color']),
-        // forcedColors: 'Highlight'
+        forcedColors: 'Highlight'
       }
     }),
     textDecorationColor: colorWithAlpha,
@@ -785,6 +789,7 @@ export const style = createTheme({
     placeContent: ['alignContent', 'justifyContent'] as const,
     placeSelf: ['alignSelf', 'justifySelf'] as const,
     gap: ['rowGap', 'columnGap'] as const,
+    size: ['width', 'height'] as const,
     overflow: ['overflowX', 'overflowY'] as const,
     overscrollBehavior: ['overscrollBehaviorX', 'overscrollBehaviorY'] as const
   },

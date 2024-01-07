@@ -1,4 +1,4 @@
-import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, VariantMap, StyleFunction, StyleValue, ThemeProperties, PropertyValueDefinition} from './types';
+import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, VariantMap, StyleFunction, StyleValue, ThemeProperties, PropertyValueDefinition, CustomValue} from './types';
 
 export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
   return (value) => {
@@ -118,10 +118,10 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
       // Expand shorthands to longhands so that merging works as expected.
       if (theme.shorthands[key]) {
         for (let prop of theme.shorthands[key]) {
-          rules.set(prop, compileValue(new Set(), prop, prop, value));
+          rules.set(prop, compileValue(prop, prop, value));
         }
       } else if (themeProperty in theme.properties) {
-        rules.set(key, compileValue(new Set(), key, themeProperty, value));
+        rules.set(key, compileValue(key, themeProperty, value));
       }
     }
 
@@ -147,28 +147,61 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     return new Function('props', js) as any;
   }
 
-  function compileValue(conditions: Set<Condition<T>>, property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
+  function compileValue(property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
+    return conditionalToRules(value as PropertyValueDefinition<Value>, new Set(), new Set(), (value, conditions, skipConditions) => {
+      return compileRule(property, themeProperty, value, conditions, skipConditions);
+    });
+  }
+
+  function conditionalToRules<P extends CustomValue | any[]>(
+    value: PropertyValueDefinition<P>,
+    currentConditions: Set<Condition<T>>,
+    skipConditions: Set<string>,
+    fn: (value: P, conditions: Set<Condition<T>>, skipConditions: Set<string>) => Rule[]
+  ) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
+
+      // Later conditions in parent rules override conditions in child rules.
+      let subSkipConditions = new Set([...skipConditions, ...Object.keys(value)]);
+      
+      // Skip the default condition if we're already filtering by one of the other possible conditions.
+      // For example, if someone specifies `dark: 'gray-400'`, only include the dark version of `gray-400` from the theme.
+      let skipDefault = Object.keys(value).some(k => currentConditions.has(k));
+      let wasThemeCondition = false;
+
       for (let condition in value) {
-        let cond = condition as Condition<T>;
-        let val = value[cond]!;
-        if (condition === 'default' || condition in theme.conditions || /^is[A-Z]/.test(condition)) {
-          let subConditions = conditions;
+        if (skipConditions.has(condition) || (condition === 'default' && skipDefault)) {
+          continue;
+        }
+        subSkipConditions.delete(condition);
+
+        let val = value[condition];
+
+        // If a theme condition comes after runtime conditions, create a new grouping.
+        // This makes the CSS class unconditional so it appears outside the `else` block in the JS.
+        // The @layer order in the generated CSS will ensure that it overrides classes applied by runtime conditions.
+        let isThemeCondition = condition in theme.conditions;
+        if (!wasThemeCondition && isThemeCondition && rules.length) {
+          rules = [{prelude: '', condition: '', body: rules}];
+        }
+        wasThemeCondition = isThemeCondition;
+
+        if (condition === 'default' || isThemeCondition || /^is[A-Z]/.test(condition)) {
+          let subConditions = currentConditions;
           if (condition in theme.conditions) {
-            subConditions = new Set([...conditions, condition]);
+            subConditions = new Set([...currentConditions, condition]);
           }
-          rules.push(...compileCondition(conditions, condition, compileValue(subConditions, property, themeProperty, val)));
-        } else if (typeof val === 'object' && val) {
-          let v = val as VariantMap<string, Value, Condition<T>, any>;
-          for (let key in v) {
-            rules.push(...compileCondition(conditions, `${condition} === ${JSON.stringify(key)}`, compileValue(conditions, property, themeProperty, v[key]!)));
+          rules.push(...compileCondition(currentConditions, condition, conditionalToRules(val, subConditions, subSkipConditions, fn)));
+        } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+          for (let key in val) {
+            rules.push(...compileCondition(currentConditions, `${condition} === ${JSON.stringify(key)}`, conditionalToRules(val[key], currentConditions, subSkipConditions, fn)));
           }
         }
       }
       return rules;
     } else {
-      return compileRule(conditions, property, themeProperty, value);
+      return fn(value, currentConditions, skipConditions);
     }
   }
 
@@ -191,7 +224,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     return [{prelude: '', condition, body: rules}];
   }
 
-  function compileRule(conditions: Set<Condition<T>>, property: string, themeProperty: string, value: Value): Rule[] {
+  function compileRule(property: string, themeProperty: string, value: Value, conditions: Set<Condition<T>>, skipConditions: Set<string>): Rule[] {
     // Generate selector. This consists of three parts:
     // 1. Property. For custom properties we use a hash. For theme properties, we use the index within the theme.
     // 2. Conditions. This uses the index within the theme.
@@ -213,49 +246,31 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     if (propertyFunction) {
       // Expand value to conditional CSS values, and then to rules.
       let res = propertyFunction(value, property);
-      return conditionalToRules(res, prelude, conditions);
+      return conditionalToRules(res, conditions, skipConditions, (value, conditions) => {
+        let [obj, p] = value;
+        let body = '';
+        for (let key in obj) {
+          // @ts-ignore
+          body += `${kebab(key)}: ${obj[key]};`
+        }
+        let rules =[{
+          condition: '',
+          prelude: prelude + p,
+          body
+        }];
+
+        if (conditions.size === 0) {
+          return [{
+            prelude: '@layer a',
+            body: rules,
+            condition: ''
+          }];
+        }
+
+        return rules;
+      });
     } else {
       throw new Error('Unknown property ' + themeProperty);
-    }
-  }
-
-  function conditionalToRules(value: PropertyValueDefinition<[CSSProperties, string]>, prelude: string, conditions: Set<Condition<T>>): Rule[] {
-    if (!Array.isArray(value)) {
-      let rules: Rule[] = [];
-      for (let condition in value) {
-        let selector = prelude;
-        let subConditions = conditions;
-        if (condition in theme.conditions) {
-          selector += themeConditionMap.get(theme.conditions[condition]);
-        }
-        if (condition in theme.conditions) {
-          subConditions = new Set([...conditions, condition]);
-        }
-        rules.push(...compileCondition(conditions, condition, conditionalToRules((value as any)[condition], selector, subConditions)));
-      }
-      return rules;
-    } else {
-      let [obj, p] = value;
-      let body = '';
-      for (let key in obj) {
-        // @ts-ignore
-        body += `${kebab(key)}: ${obj[key]};`
-      }
-      let rules =[{
-        condition: '',
-        prelude: prelude + p,
-        body
-      }];
-
-      if (conditions.size === 0) {
-        return [{
-          prelude: '@layer a',
-          body: rules,
-          condition: ''
-        }];
-      }
-
-      return rules;
     }
   }
 }
