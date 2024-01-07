@@ -29,6 +29,17 @@ function colorScale<S extends string>(scale: S): Record<ReplaceColor<Extract<key
   return res;
 }
 
+function simpleColorScale<S extends string>(scale: S): Record<Extract<keyof typeof tokens, `${S}-${number}`>, string> {
+  let res: any = {};
+  let re = new RegExp(`^${scale}-\\d+$`);
+  for (let token in tokens) {
+    if (re.test(token)) {
+      res[token] = (tokens as any)[token].value;
+    }
+  }
+  return res;
+}
+
 const color = {
   transparent: 'transparent',
   black: 'black',
@@ -60,8 +71,12 @@ const color = {
   ...colorScale('notice-color'),
   ...colorScale('positive-color'),
 
+  ...simpleColorScale('transparent-white'),
+  ...simpleColorScale('transparent-black'),
+
   // High contrast mode.
   ButtonBorder: 'ButtonBorder',
+  ButtonFace: 'ButtonFace',
   ButtonText: 'ButtonText',
   Field: 'Field',
   Highlight: 'Highlight',
@@ -70,8 +85,8 @@ const color = {
   Mark: 'Mark',
 };
 
-export function baseColor(base: Extract<keyof typeof color, `${string}-${number}`>) {
-  let keys = Object.keys(color);
+export function baseColor(base: keyof typeof color) {
+  let keys = Object.keys(color) as (keyof typeof color)[];
   let index = keys.indexOf(base);
   if (index === -1) {
     throw new Error('Invalid base color ' + base);
@@ -81,7 +96,7 @@ export function baseColor(base: Extract<keyof typeof color, `${string}-${number}
     default: base,
     isHovered: keys[index + 1],
     isFocusVisible: keys[index + 1],
-    isPressed: keys[index + 2]
+    isPressed: keys[index + 1]
   };
 }
 
@@ -218,7 +233,7 @@ let gridTrackSize = (value: GridTrackSize) => {
 };
 
 const transitionProperty = {
-  default: 'color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter',
+  default: 'color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, scale, filter, backdrop-filter',
   colors: 'color, background-color, border-color, text-decoration-color, fill, stroke',
   opacity: 'opacity',
   shadow: 'box-shadow',
@@ -271,7 +286,7 @@ export const style = createTheme({
       },
       disabled: {
         ...colorToken(tokens['disabled-content-color']),
-        forcedColors: 'GrayText'
+        // forcedColors: 'GrayText'
       }
     }),
     backgroundColor: createColorProperty({
@@ -329,7 +344,7 @@ export const style = createTheme({
       magenta: weirdColorToken(tokens['magenta-background-color-default']),
       disabled: {
         ...colorToken(tokens['disabled-background-color']),
-        forcedColors: 'GrayText'
+        // forcedColors: 'GrayText'
       }
     }),
     borderColor: createColorProperty({
@@ -342,14 +357,14 @@ export const style = createTheme({
       },
       disabled: {
         ...colorToken(tokens['disabled-border-color']),
-        forcedColors: 'GrayText'
+        // forcedColors: 'GrayText'
       }
     }),
     outlineColor: createColorProperty({
       ...color,
       'focus-ring': {
         ...colorToken(tokens['focus-indicator-color']),
-        forcedColors: 'Highlight'
+        // forcedColors: 'Highlight'
       }
     }),
     textDecorationColor: colorWithAlpha,

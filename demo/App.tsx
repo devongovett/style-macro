@@ -1,6 +1,6 @@
 import {Checkbox as RACCheckbox, CheckboxProps, ButtonRenderProps, Button as RACButton, ButtonProps as RACButtonProps, DateValue, DateField as AriaDateField, DateInput as AriaDateInput, DateFieldProps, DateInputProps, DateSegment, Label, SearchFieldProps, SearchField as AriaSearchField, GroupProps, Group, InputProps, Input as RACInput, CheckboxRenderProps} from 'react-aria-components';
 import {Check, Minus, SearchIcon, XIcon} from 'lucide-react';
-import { style } from '../default-theme.ts' with {type: 'macro'};
+import { style, baseColor } from '../spectrum-theme.ts' with {type: 'macro'};
 import { raw } from '../style-macro.ts' with {type: 'macro'};
 import { merge, mergeStyles } from '../runtime';
 import type { CSSProp } from '../types.ts';
@@ -8,18 +8,51 @@ import type { CSSProp } from '../types.ts';
 export function App() {
   return (
     <div className={style({display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'start'})()}>
-      <div className={style({backgroundColor: 'red-700', padding: 2, paddingX: 8})()}>test</div>
+      {/* <div className={style({backgroundColor: 'red-700', padding: 2, paddingX: 8})()}>test</div>
       <div className={style({backgroundColor: 'red-700', paddingX: 8, padding: 2})()}>test</div>
       <div className={merge(style({backgroundColor: 'red-700', padding: 2}), style({paddingX: 8}))()}>test</div>
-      <div className={merge(style({paddingX: 8}), style({backgroundColor: 'red-700', padding: 2}))()}>test</div>
+      <div className={merge(style({paddingX: 8}), style({backgroundColor: 'red-700', padding: 2}))()}>test</div> */}
       <Checkbox>Test</Checkbox>
       <Checkbox isInvalid>Test</Checkbox>
       <Checkbox isIndeterminate>Test</Checkbox>
       <Checkbox isDisabled>Test</Checkbox>
-      <Button variant="primary">Test</Button>
-      <Button variant="secondary">Test</Button>
-      <Button variant="destructive">Test</Button>
-      <Button variant="primary" isDisabled>Test</Button>
+      <Button variant="primary" style="fill">Test</Button>
+      <Button variant="primary" style="fill"><Icon /> Test</Button>
+      <Button variant="primary" style="fill"><Icon /></Button>
+      <Button variant="secondary" style="fill">Test</Button>
+      <Button variant="accent" style="fill">Test</Button>
+      <Button variant="negative" style="fill">Test</Button>
+      <Button variant="primary" style="fill" isDisabled>Test</Button>
+      <Button variant="primary" style="outline">Test</Button>
+      <Button variant="primary" style="outline"><Icon /> Test</Button>
+      <Button variant="secondary" style="outline">Test</Button>
+      <Button variant="accent" style="outline">Test</Button>
+      <Button variant="negative" style="outline">Test</Button>
+      <Button variant="primary" style="outline" isDisabled>Test</Button>
+      <Button variant="primary" style="fill" size="S">Test</Button>
+      <Button variant="primary" style="fill" size="M">Test</Button>
+      <Button variant="primary" style="fill" size="L">Test</Button>
+      <Button variant="primary" style="fill" size="XL">Test</Button>
+      <div className={style({padding: 2, backgroundColor: {default: 'blue-800', dark: 'blue-500'}, display: 'flex', flexDirection: 'column', gap: 2})()}>
+        <Button variant="primary" style="fill" staticColor="white">Test</Button>
+        <Button variant="primary" style="fill" staticColor="white" isDisabled>Test</Button>
+        <Button variant="secondary" style="fill" staticColor="white">Test</Button>
+        <Button variant="secondary" style="fill" staticColor="white" isDisabled>Test</Button>
+        <Button variant="primary" style="outline" staticColor="white">Test</Button>
+        <Button variant="primary" style="outline" staticColor="white" isDisabled>Test</Button>
+        <Button variant="secondary" style="outline" staticColor="white">Test</Button>
+        <Button variant="secondary" style="outline" staticColor="white" isDisabled>Test</Button>
+      </div>
+      <div className={style({padding: 2, backgroundColor: {default: 'yellow-400', dark: 'orange-800'}, display: 'flex', flexDirection: 'column', gap: 2})()}>
+        <Button variant="primary" style="fill" staticColor="black">Test</Button>
+        <Button variant="primary" style="fill" staticColor="black" isDisabled>Test</Button>
+        <Button variant="secondary" style="fill" staticColor="black">Test</Button>
+        <Button variant="secondary" style="fill" staticColor="black" isDisabled>Test</Button>
+        <Button variant="primary" style="outline" staticColor="black">Test</Button>
+        <Button variant="primary" style="outline" staticColor="black" isDisabled>Test</Button>
+        <Button variant="secondary" style="outline" staticColor="black">Test</Button>
+        <Button variant="secondary" style="outline" staticColor="black" isDisabled>Test</Button>
+      </div>
       <DateField />
       <SearchField />
     </div>
@@ -32,8 +65,8 @@ const focusRing = style({
     isFocusVisible: 'solid'
   },
   outlineColor: {
-    default: 'blue-600',
-    forcedColors: 'Highlight'
+    default: 'focus-ring',
+    // forcedColors: 'Highlight'
   },
   outlineWidth: 2,
   outlineOffset: 2
@@ -51,37 +84,45 @@ const box = merge<CheckboxRenderProps>(focusRing, style({
   borderStyle: 'solid',
   transition: 'default',
   backgroundColor: {
-    default: 'white',
-    dark: 'zinc-900',
+    default: 'gray-50',
+    // dark: 'zinc-900',
     isSelected: '--color'
   },
   borderColor: '--color',
   '--color': {
-    type: 'color',
+    type: 'backgroundColor',
     value: {
-      default: 'gray-700',
-      dark: 'slate-300',
+      default: 'neutral',
       forcedColors: 'Highlight',
-      isPressed: {
-        default: 'gray-800',
-        dark: 'slate-200',
-        forcedColors: 'Highlight'
-      },
       isInvalid: {
-        default: 'red-700',
-        dark: 'red-600',
-        forcedColors: 'Mark',
-        isPressed: {
-          default: 'red-800',
-          dark: 'red-700',
-          forcedColors: 'Mark'
-        }
+        // default: 'negative',
+        ...baseColor('red-600'),
+        forcedColors: 'Mark'
       },
-      isDisabled: {
-        default: 'gray-200',
-        dark: 'zinc-700',
-        forcedColors: 'GrayText'
-      }
+      isDisabled: 'disabled'
+      // default: 'gray-700',
+      // // dark: 'slate-300',
+      // forcedColors: 'Highlight',
+      // isPressed: {
+      //   default: 'gray-800',
+      //   // dark: 'slate-200',
+      //   forcedColors: 'Highlight'
+      // },
+      // isInvalid: {
+      //   default: 'red-700',
+      //   // dark: 'red-600',
+      //   forcedColors: 'Mark',
+      //   isPressed: {
+      //     default: 'red-800',
+      //     // dark: 'red-700',
+      //     forcedColors: 'Mark'
+      //   }
+      // },
+      // isDisabled: {
+      //   default: 'gray-200',
+      //   // dark: 'zinc-700',
+      //   forcedColors: 'GrayText'
+      // }
       // default: {
       //   default: 'gray-700',
       //   isPressed: 'gray-800',
@@ -113,12 +154,12 @@ const iconStyles = style({
   width: 4,
   height: 4,
   color: {
-    default: 'white',
-    dark: 'slate-900',
+    default: 'gray-50',
+    // dark: 'slate-900',
     forcedColors: 'HighlightText',
     isDisabled: {
       default: 'gray-400',
-      dark: 'slate-600',
+      // dark: 'slate-600',
       forcedColors: 'GrayText'
     }
   }
@@ -132,13 +173,16 @@ function Checkbox(props: CheckboxProps) {
         display: 'flex',
         gap: 2,
         alignItems: 'center',
+        transition: 'colors',
         color: {
-          default: 'gray-800',
-          dark: 'zinc-200',
+          // default: 'gray-800',
+          default: 'neutral-subdued',
+          // dark: 'zinc-200',
           isDisabled: {
-            default: 'gray-300',
-            dark: 'zinc-600',
-            forcedColors: 'GrayText'
+            // default: 'gray-300',
+            default: 'disabled',
+            // dark: 'zinc-600',
+            // forcedColors: 'GrayText'
           }
         },
         fontSize: 'sm'
@@ -160,110 +204,211 @@ function Checkbox(props: CheckboxProps) {
   );
 }
 
-interface ButtonProps extends RACButtonProps {
-  variant: 'primary' | 'secondary' | 'destructive' | 'icon'
+interface ButtonStyleProps {
+  variant?: 'primary' | 'secondary' | 'accent' | 'negative',
+  style?: 'fill' | 'outline',
+  size?: 'S' | 'M' | 'L' | 'XL',
+  staticColor?: 'white' | 'black'
 }
 
-const button = merge(focusRing, style<ButtonRenderProps & {variant: ButtonProps['variant']}>({
+interface ButtonProps extends Omit<RACButtonProps, 'style'>, ButtonStyleProps {}
+
+const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: 1.5,
+  fontSize: {
+    size: {
+      S: 'xs',
+      M: 'sm',
+      L: 'base',
+      XL: 'lg'
+    }
+  },
   paddingX: {
-    default: 5,
-    variant: {
-      icon: 1
+    size: {
+      S: 3,
+      M: 4,
+      L: 5,
+      XL: 6
     }
   },
-  paddingY: {
-    default: 2,
-    variant: {
-      icon: 1
+  paddingY: 0,
+  height: {
+    size: {
+      S: 6,
+      M: 8,
+      L: 10,
+      XL: 12
     }
   },
-  fontSize: 'sm',
-  textAlign: 'center',
   transition: 'default',
-  borderRadius: 'lg',
-  borderStyle: {
-    default: 'solid',
-    variant: {
-      icon: 'none'
+  scale: {
+    isPressed: ((32 - 2) / 32)
+  },
+  borderRadius: 'full',
+  borderStyle: 'solid',
+  borderWidth: {
+    style: {
+      fill: 0,
+      outline: 2
     }
   },
-  borderWidth: 1,
   borderColor: {
-    default: 'black/10',
-    dark: 'white/10',
-    isDisabled: {
-      default: 'black/5',
-      dark: 'white/5'
+    // default: {
+      variant: {
+        primary: baseColor('gray-800'),
+        secondary: baseColor('gray-300')
+      },
+      isDisabled: 'disabled',
+      staticColor: {
+        white: {
+          variant: {
+            primary: baseColor('transparent-white-800'),
+            secondary: baseColor('transparent-white-300')
+          },
+          isDisabled: 'transparent-white-300'
+        },
+        black: {
+          variant: {
+            primary: baseColor('transparent-black-800'),
+            secondary: baseColor('transparent-black-300')
+          },
+          isDisabled: 'transparent-black-300'
+        }
+      },
+    // },
+    forcedColors: {
+      default: 'ButtonBorder',
+      isHovered: 'Highlight',
+      isDisabled: 'GrayText'
     }
   },
-  boxShadow: {
-    default: '[inset 0 1px 0 0 rgba(255, 255, 255, 0.1)]',
-    dark: 'none'
-  },
+  fontWeight: 'bold',
   backgroundColor: {
-    variant: {
-      primary: {
-        default: 'blue-600',
-        isHovered: 'blue-700',
-        isPressed: 'blue-800'
-      },
-      secondary: {
-        default: {
-          default: 'gray-100',
-          isHovered: 'gray-200',
-          isPressed: 'gray-300'
+    // default: {
+      style: {
+        fill: {
+          variant: {
+            primary: 'neutral',
+            secondary: baseColor('gray-100'),
+            accent: 'accent',
+            negative: 'negative'
+          },
+          isDisabled: 'disabled'
         },
-        dark: {
-          default: 'zinc-600',
-          isHovered: 'zinc-500',
-          isPressed: 'zinc-400'
+        outline: {
+          default: 'transparent',
+          isHovered: 'gray-100',
+          isPressed: 'gray-100',
         }
       },
-      destructive: {
-        default: 'red-700',
-        isHovered: 'red-800',
-        isPressed: 'red-900'
-      },
-      icon: {
-        default: {
-          default: 'transparent',
-          isHovered: 'black/5',
-          isPressed: 'black/10'
+      staticColor: {
+        white: {
+          style: {
+            fill: {
+              variant: {
+                primary: baseColor('transparent-white-800'),
+                secondary: baseColor('transparent-white-100')
+              },
+              isDisabled: 'transparent-white-100'
+            },
+            outline: {
+              default: 'transparent',
+              isHovered: 'transparent-white-100',
+              isPressed: 'transparent-white-100'
+            }
+          }
         },
-        dark: {
-          default: 'transparent',
-          isHovered: 'white/5',
-          isPressed: 'white/10'
+        black: {
+          style: {
+            fill: {
+              variant: {
+                primary: baseColor('transparent-black-800'),
+                secondary: baseColor('transparent-black-100')
+              },
+              isDisabled: 'transparent-black-100'
+            },
+            outline: {
+              default: 'transparent',
+              isHovered: 'transparent-black-100',
+              isPressed: 'transparent-black-100'
+            }
+          }
         }
+      },
+    // },
+    forcedColors: {
+      style: {
+        fill: {
+          default: 'ButtonText',
+          isHovered: 'Highlight',
+          isDisabled: 'GrayText'
+        },
+        outline: 'ButtonFace'
       }
-    },
-    isDisabled: {
-      default: 'gray-100',
-      dark: 'zinc-800'
     }
   },
   color: {
-    variant: {
-      primary: 'white',
-      secondary: {
-        default: 'gray-800',
-        dark: 'zinc-100'
+    // default: {
+      style: {
+        fill: {
+          variant: {
+            primary: 'gray-25',
+            secondary: 'neutral',
+            accent: 'white',
+            negative: 'white'
+          },
+          isDisabled: 'disabled'
+        },
+        outline: 'neutral'
       },
-      destructive: 'white',
-      icon: {
-        default: 'gray-600',
-        dark: 'zinc-400'
-      }
-    },
-    isDisabled: 'GrayText'
-  }
+      staticColor: {
+        white: {
+          style: {
+            fill: {
+              variant: {
+                primary: 'black',
+                secondary: baseColor('transparent-white-800')
+              }
+            },
+            outline: baseColor('transparent-white-800'),
+          },
+          isDisabled: 'transparent-white-400'
+        },
+        black: {
+          style: {
+            fill: {
+              variant: {
+                primary: 'white',
+                secondary: baseColor('transparent-black-800'),
+              }
+            },
+            outline: baseColor('transparent-black-800'),
+          },
+          isDisabled: 'transparent-black-400'
+        }
+      },
+    // },
+    forcedColors: {
+      style: {
+        fill: {
+          default: 'ButtonFace',
+          isDisabled: 'HighlightText'
+        },
+        outline: {
+          default: 'ButtonText',
+          isDisabled: 'GrayText'
+        }
+      },
+    }
+  },
+  forcedColorAdjust: 'none'
 }));
 
 type AllowedStyleProps = 'margin' | 'marginStart' | 'marginEnd' | 'visibility';
-interface MyButtonProps extends Omit<ButtonProps, 'className' | 'style'> {
+interface MyButtonProps extends Omit<ButtonProps, 'className'> {
   css?: CSSProp<typeof style, AllowedStyleProps>
 }
 
@@ -271,7 +416,8 @@ function Button(props: MyButtonProps) {
   return (
     <RACButton
       {...props}
-      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant}))} />
+      style={undefined}
+      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant || 'primary', style: props.style || 'fill', size: props.size || 'M', staticColor: props.staticColor}))} />
   );
 }
 
@@ -283,11 +429,11 @@ const fieldBorderStyles = style({
       isInvalid: 'red-600',
       isDisabled: 'gray-200'
     },
-    dark: {
-      default: 'zinc-500',
-      isFocusWithin: 'zinc-300',
-      isInvalid: 'red-600'
-    },
+    // dark: {
+    //   default: 'zinc-500',
+    //   isFocusWithin: 'zinc-300',
+    //   isInvalid: 'red-600'
+    // },
     forcedColors: {
       default: 'ButtonBorder',
       isFocusWithin: 'Highlight',
@@ -301,8 +447,8 @@ const fieldGroupStyles = merge(focusRing, fieldBorderStyles, style({
   display: 'flex',
   alignItems: 'center',
   backgroundColor: {
-    default: 'white',
-    dark: 'zinc-900',
+    default: 'gray-50',
+    // dark: 'zinc-900',
     forcedColors: 'Field'
   },
   borderWidth: 2,
@@ -357,11 +503,11 @@ function DateInput(props: Omit<DateInputProps, 'children'>) {
             },
             color: {
               default: 'gray-800',
-              dark: 'zinc-200',
+              // dark: 'zinc-200',
               forcedColors: 'ButtonText',
               isPlaceholder: {
                 default: 'gray-600',
-                dark: 'zinc-400'
+                // dark: 'zinc-400'
               },
               isFocused: {
                 default: 'white',
@@ -369,7 +515,7 @@ function DateInput(props: Omit<DateInputProps, 'children'>) {
               },
               isDisabled: {
                 default: 'gray-200',
-                dark: 'zinc-600',
+                // dark: 'zinc-600',
                 forcedColors: 'GrayText'
               }
             }
@@ -389,7 +535,7 @@ function SearchField(props: SearchFieldProps) {
       {({isEmpty}) => <>
         <Label className={style({fontSize: 'sm'})()}>Test</Label>
         <FieldGroup>
-          <SearchIcon aria-hidden className={style({width: 4, height: 4, marginStart: 2, color: {default: 'gray-500', dark: 'zinc-400', forcedColors: 'ButtonText'}})()} />
+          <SearchIcon aria-hidden className={style({width: 4, height: 4, marginStart: 2, color: {default: 'gray-500', forcedColors: 'ButtonText'}})()} />
           <Input className={raw('&::-webkit-search-cancel-button { display: none }')} />
           <Button variant="icon" css={style({marginEnd: 1, visibility: {isEmpty: 'hidden'}})({isEmpty})}>
             <XIcon aria-hidden className={style({width: 4, height: 4})()} />
@@ -411,19 +557,26 @@ function Input(props: InputProps) {
         minWidth: 0,
         outlineStyle: 'none',
         backgroundColor: {
-          default: 'white',
-          dark: 'zinc-900',
+          default: 'gray-50',
+          // dark: 'zinc-900',
         },
         fontSize: 'sm',
         color: {
           default: 'gray-800',
-          dark: 'zinc-200',
+          // dark: 'zinc-200',
           isDisabled: {
             default: 'gray-200',
-            dark: 'zinc-700'
+            // dark: 'zinc-700'
           }
         },
         borderStyle: 'none'
       })(r)} />
   );
 }
+
+function Icon() {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" style={{marginLeft: -2}}>
+  <path d="M18 4.25V15.75C18 16.9907 16.9907 18 15.75 18H4.25C3.00928 18 2 16.9907 2 15.75V4.25C2 3.00928 3.00928 2 4.25 2H15.75C16.9907 2 18 3.00928 18 4.25ZM16.5 4.25C16.5 3.83643 16.1636 3.5 15.75 3.5H4.25C3.83643 3.5 3.5 3.83643 3.5 4.25V15.75C3.5 16.1636 3.83643 16.5 4.25 16.5H15.75C16.1636 16.5 16.5 16.1636 16.5 15.75V4.25Z" fill="currentColor"/>
+  <path d="M13.7632 10C13.7632 10.4214 13.4214 10.7632 13 10.7632H10.7632V13C10.7632 13.4214 10.4214 13.7632 10 13.7632C9.57862 13.7632 9.23682 13.4214 9.23682 13V10.7632H7C6.57861 10.7632 6.23682 10.4214 6.23682 10C6.23682 9.57862 6.57862 9.23682 7 9.23682H9.23682V7C9.23682 6.57861 9.57862 6.23682 10 6.23682C10.4214 6.23682 10.7632 6.57862 10.7632 7V9.23682H13C13.4214 9.23682 13.7632 9.57862 13.7632 10Z" fill="currentColor"/>
+  </svg>
+};
