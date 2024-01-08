@@ -68,7 +68,7 @@ export type RenderProps<K extends string> = {
 };
 
 export type StyleValue<V extends Value, C extends string, R extends RenderProps<string>> = V | Conditional<V, C, R>;
-export type Condition<T extends Theme> = (keyof T['conditions'] & string) | 'default';
+export type Condition<T extends Theme> = 'default' | Extract<keyof T['conditions'], string>;
 type Conditional<V extends Value, C extends string, R extends RenderProps<string>> =
   ThemeConditions<V, C, R> & DynamicConditions<V, C, R>
 
@@ -87,16 +87,9 @@ type UnknownConditions<V extends Value, C extends string> = {
   [name: string]: StyleValue<V, C, never> | VariantMap<string, V, C, never>
 };
 
-type RenderPropConditions<V extends Value, C extends string, R extends RenderProps<string>> =
-  BooleanRenderProps<V, C, R> & VariantRenderProps<V, C, R>;
-
 type BooleanConditionName = `is${Capitalize<string>}`;
-type BooleanRenderProps<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [K in Extract<keyof R, BooleanConditionName>]?: StyleValue<V, C, R>
-};
-
-type VariantRenderProps<V extends Value, C extends string, R extends RenderProps<string>> = {
-  [K in Exclude<keyof R, BooleanConditionName>]?: VariantMap<R[K], V, C, R>
+type RenderPropConditions<V extends Value, C extends string, R extends RenderProps<string>> = {
+  [K in keyof R]?: K extends BooleanConditionName ? StyleValue<V, C, R> : VariantMap<R[K], V, C, R>
 };
 
 type Values<T, K extends keyof T = keyof T> = {

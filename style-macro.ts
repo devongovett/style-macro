@@ -24,7 +24,7 @@ export function createMappedProperty<T extends CSSValue>(fn: (value: string) => 
   };
 }
 
-type Color<C extends string> = C | `${C}/${number}`;
+type Color<C extends string> = C | `${string}/${number}`;
 export function createColorProperty<C extends string>(colors: PropertyValueMap<C>, property?: keyof CSSProperties): PropertyFunction<Color<C>> {
   let valueMap = createValueLookup(Object.values(colors).flatMap((v: any) => typeof v === 'object' ? Object.values(v) : [v]));
   return (value: Color<C>, key: string) => {
@@ -79,7 +79,7 @@ interface MacroContext {
   addAsset(asset: {type: string, content: string}): void
 }
 
-export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, "default" | (keyof T["conditions"] & string)> {
+export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemeProperties<T>, Condition<T>> {
   let themePropertyMap = createValueLookup(Object.keys(theme.properties), true);
   let themeConditionMap = createValueLookup(['default', ...Object.values(theme.conditions)]);
   let propertyFunctions = new Map(Object.entries(theme.properties).map(([k, v]) => {
@@ -155,9 +155,9 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
 
   function conditionalToRules<P extends CustomValue | any[]>(
     value: PropertyValueDefinition<P>,
-    currentConditions: Set<Condition<T>>,
+    currentConditions: Set<string>,
     skipConditions: Set<string>,
-    fn: (value: P, conditions: Set<Condition<T>>, skipConditions: Set<string>) => Rule[]
+    fn: (value: P, conditions: Set<string>, skipConditions: Set<string>) => Rule[]
   ) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       let rules: Rule[] = [];
@@ -205,7 +205,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     }
   }
 
-  function compileCondition(conditions: Set<Condition<T>>, condition: string, rules: Rule[]): Rule[] {
+  function compileCondition(conditions: Set<string>, condition: string, rules: Rule[]): Rule[] {
     if (condition === 'default') {
       return [{prelude: '', condition: '', body: rules}];
     }
@@ -224,7 +224,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     return [{prelude: '', condition, body: rules}];
   }
 
-  function compileRule(property: string, themeProperty: string, value: Value, conditions: Set<Condition<T>>, skipConditions: Set<string>): Rule[] {
+  function compileRule(property: string, themeProperty: string, value: Value, conditions: Set<string>, skipConditions: Set<string>): Rule[] {
     // Generate selector. This consists of three parts:
     // 1. Property. For custom properties we use a hash. For theme properties, we use the index within the theme.
     // 2. Conditions. This uses the index within the theme.
