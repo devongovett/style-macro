@@ -18,7 +18,7 @@ export function App() {
       <Checkbox isDisabled>Test</Checkbox>
       <Button variant="primary" style="fill">Test</Button>
       <Button variant="primary" style="fill"><Icon /> Test</Button>
-      <Button variant="primary" style="fill"><Icon /></Button>
+      <Button variant="primary" style="fill" isIconOnly><Icon /></Button>
       <Button variant="secondary" style="fill">Test</Button>
       <Button variant="accent" style="fill">Test</Button>
       <Button variant="negative" style="fill">Test</Button>
@@ -210,7 +210,8 @@ interface ButtonStyleProps {
   variant?: 'primary' | 'secondary' | 'accent' | 'negative',
   style?: 'fill' | 'outline',
   size?: 'S' | 'M' | 'L' | 'XL',
-  staticColor?: 'white' | 'black'
+  staticColor?: 'white' | 'black',
+  isIconOnly?: boolean
 }
 
 interface ButtonProps extends Omit<RACButtonProps, 'style'>, ButtonStyleProps {}
@@ -234,7 +235,8 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
       M: 4,
       L: 5,
       XL: 6
-    }
+    },
+    isIconOnly: 0
   },
   paddingY: 0,
   height: {
@@ -244,6 +246,9 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
       L: 10,
       XL: 12
     }
+  },
+  aspectRatio: {
+    isIconOnly: 'square'
   },
   transition: 'default',
   scale: {
@@ -420,7 +425,7 @@ function Button(props: MyButtonProps) {
     <RACButton
       {...props}
       style={undefined}
-      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant || 'primary', style: props.style || 'fill', size: props.size || 'M', staticColor: props.staticColor}))} />
+      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant || 'primary', style: props.style || 'fill', size: props.size || 'M', staticColor: props.staticColor, isIconOnly: props.isIconOnly}))} />
   );
 }
 
