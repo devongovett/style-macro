@@ -100,7 +100,7 @@ export function baseColor(base: keyof typeof color) {
   };
 }
 
-const spacing = {
+const baseSpacing = {
   px: '1px',
   0: '0px',
   0.5: '0.125rem', // 2px - spacing-50
@@ -152,8 +152,16 @@ const spacing = {
   96: '24rem',
 };
 
+const spacing = {
+  ...baseSpacing,
+
+  // font-size relative values
+  'text-to-control': (10 / 14) + 'em',
+  'text-to-visual': (8 / 14) + 'em'
+};
+
 const sizing = {
-  ...spacing,
+  ...baseSpacing,
   auto: 'auto',
   '1/2': '50%',
   '1/3': '33.333333%',
@@ -186,7 +194,7 @@ const margin = {
 };
 
 const inset = {
-  ...spacing,
+  ...baseSpacing,
   auto: 'auto',
   '1/2': '50%',
   '1/3': '33.333333%',
@@ -222,7 +230,7 @@ const radius = {
 };
 
 type GridTrack = 'none' | 'subgrid' | (string & {}) | GridTrackSize[];
-type GridTrackSize = 'auto' | 'min-content' | 'max-content' | `${number}fr` | `minmax(${string}, ${string})` | keyof typeof spacing;
+type GridTrackSize = 'auto' | 'min-content' | 'max-content' | `${number}fr` | `minmax(${string}, ${string})` | keyof typeof baseSpacing;
 
 let gridTrack = (value: GridTrack) => {
   if (typeof value === 'string') {
@@ -233,7 +241,7 @@ let gridTrack = (value: GridTrack) => {
 
 let gridTrackSize = (value: GridTrackSize) => {
   // @ts-ignore
-  return value in spacing ? spacing[value] : value
+  return value in baseSpacing ? baseSpacing[value] : value
 };
 
 const transitionProperty = {
@@ -384,17 +392,17 @@ export const style = createTheme({
     }),
 
     // dimensions
-    borderSpacing: spacing, // TODO: separate x and y
+    borderSpacing: baseSpacing, // TODO: separate x and y
     flexBasis: {
       auto: 'auto',
-      ...spacing
+      ...baseSpacing
     },
     rowGap: spacing,
     columnGap: spacing,
     height: sizing,
     width: sizing,
     minHeight: {
-      ...spacing,
+      ...baseSpacing,
       full: '100%',
       screen: '100vh',
       svh: '100svh',
@@ -405,7 +413,7 @@ export const style = createTheme({
       fit: 'fit-content',
     },
     maxHeight: {
-      ...spacing,
+      ...baseSpacing,
       none: 'none',
       full: '100%',
       screen: '100vh',
@@ -417,14 +425,14 @@ export const style = createTheme({
       fit: 'fit-content',
     },
     minWidth: {
-      ...spacing,
+      ...baseSpacing,
       full: '100%',
       min: 'min-content',
       max: 'max-content',
       fit: 'fit-content'
     },
     maxWidth: {
-      ...spacing,
+      ...baseSpacing,
       none: 'none',
       xs: '20rem',
       sm: '24rem',
@@ -465,17 +473,17 @@ export const style = createTheme({
     paddingEnd: createMappedProperty(value => ({paddingInlineEnd: value}), spacing),
     paddingTop: spacing,
     paddingBottom: spacing,
-    scrollMarginStart: createMappedProperty(value => ({scrollMarginInlineStart: value}), spacing),
-    scrollMarginEnd: createMappedProperty(value => ({scrollMarginInlineEnd: value}), spacing),
-    scrollMarginTop: spacing,
-    scrollMarginBottom: spacing,
-    scrollPaddingStart: createMappedProperty(value => ({scrollPaddingInlineStart: value}), spacing),
-    scrollPaddingEnd: createMappedProperty(value => ({scrollPaddingInlineEnd: value}), spacing),
-    scrollPaddingTop: spacing,
-    scrollPaddingBottom: spacing,
-    textIndent: spacing,
+    scrollMarginStart: createMappedProperty(value => ({scrollMarginInlineStart: value}), baseSpacing),
+    scrollMarginEnd: createMappedProperty(value => ({scrollMarginInlineEnd: value}), baseSpacing),
+    scrollMarginTop: baseSpacing,
+    scrollMarginBottom: baseSpacing,
+    scrollPaddingStart: createMappedProperty(value => ({scrollPaddingInlineStart: value}), baseSpacing),
+    scrollPaddingEnd: createMappedProperty(value => ({scrollPaddingInlineEnd: value}), baseSpacing),
+    scrollPaddingTop: baseSpacing,
+    scrollPaddingBottom: baseSpacing,
+    textIndent: baseSpacing,
     translate: {
-      ...spacing,
+      ...baseSpacing,
       '1/2': '50%',
       '1/3': '33.333333%',
       '2/3': '66.666667%',
