@@ -17,23 +17,27 @@ export function App() {
       <Checkbox isIndeterminate>Test</Checkbox>
       <Checkbox isDisabled>Test</Checkbox>
       <Button variant="primary" style="fill">Test</Button>
-      <Button variant="primary" style="fill"><Icon /> Test</Button>
+      <Button variant="primary" style="fill"><Icon /> <ButtonLabel>Test</ButtonLabel></Button>
       <Button variant="primary" style="fill" isIconOnly><Icon /></Button>
       <Button variant="primary" style="fill" css={style({maxWidth: 32})()}>Very long button with wrapping text to see what happens</Button>
+      <Button variant="primary" style="fill" css={style({maxWidth: 32})()}>
+        <Icon />
+        <ButtonLabel>Very long button with wrapping text to see what happens</ButtonLabel>
+      </Button>
       <Button variant="secondary" style="fill">Test</Button>
       <Button variant="accent" style="fill">Test</Button>
       <Button variant="negative" style="fill">Test</Button>
       <Button variant="primary" style="fill" isDisabled>Test</Button>
       <Button variant="primary" style="outline">Test</Button>
-      <Button variant="primary" style="outline"><Icon /> Test</Button>
+      <Button variant="primary" style="outline"><Icon /> <ButtonLabel>Test</ButtonLabel></Button>
       <Button variant="secondary" style="outline">Test</Button>
       <Button variant="accent" style="outline">Test</Button>
       <Button variant="negative" style="outline">Test</Button>
       <Button variant="primary" style="outline" isDisabled>Test</Button>
-      <Button variant="primary" style="fill" size="S"><Icon /> Test</Button>
-      <Button variant="primary" style="fill" size="M"><Icon /> Test</Button>
-      <Button variant="primary" style="fill" size="L"><Icon /> Test</Button>
-      <Button variant="primary" style="fill" size="XL"><Icon /> Test</Button>
+      <Button variant="primary" style="fill" size="S"><Icon /> <ButtonLabel>Test</ButtonLabel></Button>
+      <Button variant="primary" style="fill" size="M"><Icon /> <ButtonLabel>Test</ButtonLabel></Button>
+      <Button variant="primary" style="fill" size="L"><Icon /> <ButtonLabel>Test</ButtonLabel></Button>
+      <Button variant="primary" style="fill" size="XL"><Icon /> <ButtonLabel>Test</ButtonLabel></Button>
       <div className={style({padding: 2, backgroundColor: {default: 'blue-800', dark: 'blue-500'}, display: 'flex', flexDirection: 'column', gap: 2})()}>
         <Button variant="primary" style="fill" staticColor="white">Test</Button>
         <Button variant="primary" style="fill" staticColor="white" isDisabled>Test</Button>
@@ -219,7 +223,10 @@ interface ButtonProps extends Omit<RACButtonProps, 'style'>, ButtonStyleProps {}
 
 const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   display: 'flex',
-  alignItems: 'center',
+  alignItems: {
+    default: 'baseline',
+    isIconOnly: 'center'
+  },
   justifyContent: 'center',
   textAlign: 'start',
   columnGap: 'text-to-visual',
@@ -252,24 +259,21 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   aspectRatio: {
     isIconOnly: 'square'
   },
-  '--icon-margin': {
-    type: 'marginTop',
-    value: {
-      default: '[calc(-2 / 14 * 1em)]',
-      isIconOnly: 0
-    }
-  },
   transition: 'default',
   scale: {
     isPressed: ((32 - 2) / 32)
   },
   borderStyle: 'solid',
-  borderWidth: {
-    style: {
-      fill: 0,
-      outline: 2
+  '--border-width': {
+    type: 'borderWidth',
+    value: {
+      style: {
+        fill: 0,
+        outline: 2
+      }
     }
   },
+  borderWidth: '--border-width',
   borderColor: {
     variant: {
       primary: baseColor('gray-800'),
@@ -433,8 +437,14 @@ function Button(props: MyButtonProps) {
     <RACButton
       {...props}
       style={undefined}
-      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant || 'primary', style: props.style || 'fill', size: props.size || 'M', staticColor: props.staticColor, isIconOnly: props.isIconOnly}))} />
+      className={renderProps => mergeStyles(props.css, button({...renderProps, variant: props.variant || 'primary', style: props.style || 'fill', size: props.size || 'M', staticColor: props.staticColor, isIconOnly: props.isIconOnly}))}>
+      {typeof props.children === 'string' ? <ButtonLabel>{props.children}</ButtonLabel> : props.children}
+    </RACButton>
   );
+}
+
+function ButtonLabel({children}) {
+  return <span className={style({paddingY: '[calc((var(--height) - 1lh) / 2 - var(--border-width))]'})()}>{children}</span>
 }
 
 const fieldBorderStyles = style({
@@ -591,8 +601,14 @@ function Input(props: InputProps) {
 }
 
 function Icon() {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" className={style({width: '[round(calc(20 / 14 * 1em), 2px)]', height: '[round(calc(20 / 14 * 1em), 2px)]'})()} style={{marginLeft: 'var(--icon-margin)'}}>
-  <path d="M18 4.25V15.75C18 16.9907 16.9907 18 15.75 18H4.25C3.00928 18 2 16.9907 2 15.75V4.25C2 3.00928 3.00928 2 4.25 2H15.75C16.9907 2 18 3.00928 18 4.25ZM16.5 4.25C16.5 3.83643 16.1636 3.5 15.75 3.5H4.25C3.83643 3.5 3.5 3.83643 3.5 4.25V15.75C3.5 16.1636 3.83643 16.5 4.25 16.5H15.75C16.1636 16.5 16.5 16.1636 16.5 15.75V4.25Z" fill="currentColor"/>
-  <path d="M13.7632 10C13.7632 10.4214 13.4214 10.7632 13 10.7632H10.7632V13C10.7632 13.4214 10.4214 13.7632 10 13.7632C9.57862 13.7632 9.23682 13.4214 9.23682 13V10.7632H7C6.57861 10.7632 6.23682 10.4214 6.23682 10C6.23682 9.57862 6.57862 9.23682 7 9.23682H9.23682V7C9.23682 6.57861 9.57862 6.23682 10 6.23682C10.4214 6.23682 10.7632 6.57862 10.7632 7V9.23682H13C13.4214 9.23682 13.7632 9.57862 13.7632 10Z" fill="currentColor"/>
-  </svg>
+  return <div className={style({display: 'flex', alignItems: 'center', marginStart: '[calc(-2 / 14 * 1em)]'})() + ' ' + raw('&::before { content: "\u00a0"; width: 0; visibility: hidden } &:only-child { margin-inline-start: 0 }')}>
+    <svg viewBox="0 0 20 20" fill="none" className={style({
+      width: '[round(calc(20 / 14 * 1em), 2px)]',
+      height: '[round(calc(20 / 14 * 1em), 2px)]',
+      flexShrink: 0
+    })()}>
+    <path d="M18 4.25V15.75C18 16.9907 16.9907 18 15.75 18H4.25C3.00928 18 2 16.9907 2 15.75V4.25C2 3.00928 3.00928 2 4.25 2H15.75C16.9907 2 18 3.00928 18 4.25ZM16.5 4.25C16.5 3.83643 16.1636 3.5 15.75 3.5H4.25C3.83643 3.5 3.5 3.83643 3.5 4.25V15.75C3.5 16.1636 3.83643 16.5 4.25 16.5H15.75C16.1636 16.5 16.5 16.1636 16.5 15.75V4.25Z" fill="currentColor"/>
+    <path d="M13.7632 10C13.7632 10.4214 13.4214 10.7632 13 10.7632H10.7632V13C10.7632 13.4214 10.4214 13.7632 10 13.7632C9.57862 13.7632 9.23682 13.4214 9.23682 13V10.7632H7C6.57861 10.7632 6.23682 10.4214 6.23682 10C6.23682 9.57862 6.57862 9.23682 7 9.23682H9.23682V7C9.23682 6.57861 9.57862 6.23682 10 6.23682C10.4214 6.23682 10.7632 6.57862 10.7632 7V9.23682H13C13.4214 9.23682 13.7632 9.57862 13.7632 10Z" fill="currentColor"/>
+    </svg>
+  </div>
 };
