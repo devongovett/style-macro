@@ -188,7 +188,7 @@ function Checkbox(props: CheckboxProps) {
             // forcedColors: 'GrayText'
           }
         },
-        fontSize: 'sm'
+        fontSize: 'base'
       })}>
       {({isSelected, isIndeterminate, ...renderProps}) => (
         <>
@@ -221,13 +221,14 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  textAlign: 'start',
   columnGap: 'text-to-visual',
   fontSize: {
     size: {
-      S: 'xs',
-      M: 'sm',
-      L: 'base',
-      XL: 'lg'
+      S: 'sm',
+      M: 'base',
+      L: 'lg',
+      XL: 'xl'
     }
   },
   '--height': {
@@ -254,7 +255,7 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   '--icon-margin': {
     type: 'marginTop',
     value: {
-      default: '[-2px]',
+      default: '[calc(-2 / 14 * 1em)]',
       isIconOnly: 0
     }
   },
@@ -475,7 +476,7 @@ const fieldGroupStyles = merge(focusRing, fieldBorderStyles, style({
 function DateField<T extends DateValue>(props: DateFieldProps<T>) {
   return (
     <AriaDateField {...props} className={style({display: 'flex', flexDirection: 'column', gap: 1})}>
-      <Label className={style({fontSize: 'sm'})()}>Test</Label>
+      <Label className={style({fontSize: 'base'})()}>Test</Label>
       <DateInput />
     </AriaDateField>
   );
@@ -490,7 +491,7 @@ function DateInput(props: Omit<DateInputProps, 'children'>) {
         minWidth: 40,
         paddingX: 2,
         paddingY: 1.5,
-        fontSize: 'sm'
+        fontSize: 'base'
       }))}>
       {(segment) => (
         <DateSegment
@@ -548,7 +549,7 @@ function SearchField(props: SearchFieldProps) {
   return (
     <AriaSearchField {...props} className={style({display: 'flex', flexDirection: 'column', gap: 1})}>
       {({isEmpty}) => <>
-        <Label className={style({fontSize: 'sm'})()}>Test</Label>
+        <Label className={style({fontSize: 'base'})()}>Test</Label>
         <FieldGroup>
           <SearchIcon aria-hidden className={style({width: 4, height: 4, marginStart: 2, color: {default: 'gray-500', forcedColors: 'ButtonText'}})()} />
           <Input className={raw('&::-webkit-search-cancel-button { display: none }')} />
@@ -575,7 +576,7 @@ function Input(props: InputProps) {
           default: 'gray-50',
           // dark: 'zinc-900',
         },
-        fontSize: 'sm',
+        fontSize: 'base',
         color: {
           default: 'gray-800',
           // dark: 'zinc-200',
@@ -590,7 +591,7 @@ function Input(props: InputProps) {
 }
 
 function Icon() {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" style={{marginLeft: 'var(--icon-margin)'}}>
+  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" className={style({width: '[round(calc(20 / 14 * 1em), 2px)]', height: '[round(calc(20 / 14 * 1em), 2px)]'})()} style={{marginLeft: 'var(--icon-margin)'}}>
   <path d="M18 4.25V15.75C18 16.9907 16.9907 18 15.75 18H4.25C3.00928 18 2 16.9907 2 15.75V4.25C2 3.00928 3.00928 2 4.25 2H15.75C16.9907 2 18 3.00928 18 4.25ZM16.5 4.25C16.5 3.83643 16.1636 3.5 15.75 3.5H4.25C3.83643 3.5 3.5 3.83643 3.5 4.25V15.75C3.5 16.1636 3.83643 16.5 4.25 16.5H15.75C16.1636 16.5 16.5 16.1636 16.5 15.75V4.25Z" fill="currentColor"/>
   <path d="M13.7632 10C13.7632 10.4214 13.4214 10.7632 13 10.7632H10.7632V13C10.7632 13.4214 10.4214 13.7632 10 13.7632C9.57862 13.7632 9.23682 13.4214 9.23682 13V10.7632H7C6.57861 10.7632 6.23682 10.4214 6.23682 10C6.23682 9.57862 6.57862 9.23682 7 9.23682H9.23682V7C9.23682 6.57861 9.57862 6.23682 10 6.23682C10.4214 6.23682 10.7632 6.57862 10.7632 7V9.23682H13C13.4214 9.23682 13.7632 9.57862 13.7632 10Z" fill="currentColor"/>
   </svg>

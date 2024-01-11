@@ -152,16 +152,37 @@ const baseSpacing = {
   96: '24rem',
 };
 
+// const spacingAliases = {
+//   'spacing-50': baseSpacing[0.5],
+//   'spacing-75': baseSpacing[1],
+//   'spacing-100': baseSpacing[2],
+//   'spacing-200': baseSpacing[3],
+//   'spacing-300': baseSpacing[4],
+//   'spacing-400': baseSpacing[6],
+//   'spacing-500': baseSpacing[8],
+//   'spacing-600': baseSpacing[10],
+//   'spacing-700': baseSpacing[12],
+//   'spacing-800': baseSpacing[16],
+//   'spacing-900': baseSpacing[20],
+//   'spacing-1000': baseSpacing[24]
+// };
+
 const spacing = {
   ...baseSpacing,
+  // ...spacingAliases,
 
   // font-size relative values
   'text-to-control': (10 / 14) + 'em',
-  'text-to-visual': (8 / 14) + 'em'
+  'text-to-visual': (6 / 14) + 'em' // was 8 / 14 in S1
 };
 
+const scaledSpacing: {[key in keyof typeof baseSpacing]: {default: string, touch: string}} = 
+  Object.fromEntries(Object.entries(baseSpacing).map(([k, v]) => 
+    [k, {default: v, touch: parseFloat(v) * 1.25 + v.match(/[^0-9\.]+/)![0]}])
+  ) as any;
+
 const sizing = {
-  ...baseSpacing,
+  ...scaledSpacing,
   auto: 'auto',
   '1/2': '50%',
   '1/3': '33.333333%',
@@ -402,7 +423,7 @@ export const style = createTheme({
     height: sizing,
     width: sizing,
     minHeight: {
-      ...baseSpacing,
+      ...sizing,
       full: '100%',
       screen: '100vh',
       svh: '100svh',
@@ -413,7 +434,7 @@ export const style = createTheme({
       fit: 'fit-content',
     },
     maxHeight: {
-      ...baseSpacing,
+      ...sizing,
       none: 'none',
       full: '100%',
       screen: '100vh',
@@ -425,14 +446,14 @@ export const style = createTheme({
       fit: 'fit-content',
     },
     minWidth: {
-      ...baseSpacing,
+      ...sizing,
       full: '100%',
       min: 'min-content',
       max: 'max-content',
       fit: 'fit-content'
     },
     maxWidth: {
-      ...baseSpacing,
+      ...sizing,
       none: 'none',
       xs: '20rem',
       sm: '24rem',
@@ -514,12 +535,30 @@ export const style = createTheme({
       mono: 'ui-monospace, Menlo, Monaco, Consalas, "Courier New", monospace'
     },
     fontSize: {
-      xs: '0.75rem', // font-size-75
-      sm: '0.875rem', // font-size-100
-      base: '1rem', // font-size-200
-      lg: '1.125rem', // font-size-300
-      xl: '1.25rem', // font-size-400
-      '2xl': '1.5rem', // font-size-500 (25px??)
+      sm: {
+        default: '0.75rem', // 12px - font-size-75
+        touch: '0.9375rem' // 15px
+      },
+      base: {
+        default: '0.875rem', // 14px - font-size-100
+        touch: '1.0625rem' // 17px
+      },
+      lg: {
+        default: '1rem', // 16px - font-size-200
+        touch: '1.1875rem' // 19px
+      },
+      xl: {
+        default: '1.125rem', // 18px - font-size-300
+        touch: '1.375rem' // 22px
+      },
+      '2xl': {
+        default: '1.25rem', // 20px - font-size-400
+        touch: '1.5rem' // 24px
+      },
+      '3xl': {
+        default: '1.5625rem', // 25px - font-size-500
+        touch: '1.9375rem' // 31px
+      },
       // font-size-600 = 1.75rem
       // '3xl': '1.875rem', // 
       // '4xl': '2.25rem',
@@ -804,6 +843,15 @@ export const style = createTheme({
   conditions: {
     dark: '@media (prefers-color-scheme: dark)',
     forcedColors: '@media (forced-colors: active)',
+    // This detects touch primary devices as best as we can.
+    // Ideally we'd use (pointer: course) but browser/device support is inconsistent.
+    // Samsung Android devices claim to be mice at the hardware/OS level: (any-pointer: fine), (any-hover: hover), (hover: hover), and nothing for pointer.
+    // More details: https://www.ctrl.blog/entry/css-media-hover-samsung.html
+    // iPhone matches (any-hover: none), (hover: none), and nothing for any-pointer or pointer.
+    // If a trackpad or Apple Pencil is connected to iPad, it matches (any-pointer: fine), (any-hover: hover), (hover: none).
+    // Windows tablet matches the same as iPhone. No difference when a mouse is connected.
+    // Windows touch laptop matches same as macOS: (any-pointer: fine), (pointer: fine), (any-hover: hover), (hover: hover).
+    touch: '@media not ((hover: hover) and (pointer: fine))',
     sm: '@media (min-width: 640px)',
     md: '@media (min-width: 768px)',
     lg: '@media (min-width: 1024px)',

@@ -236,12 +236,6 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
       prelude += themePropertyMap.get(themeProperty);
     }
 
-    for (let condition of conditions) {
-      if (condition in theme.conditions) {
-        prelude += themeConditionMap.get(theme.conditions[condition]);
-      }
-    }
-
     let propertyFunction = propertyFunctions.get(themeProperty);
     if (propertyFunction) {
       // Expand value to conditional CSS values, and then to rules.
@@ -253,9 +247,17 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
           // @ts-ignore
           body += `${kebab(key)}: ${obj[key]};`
         }
+
+        let selector = prelude;
+        for (let condition of conditions) {
+          if (condition in theme.conditions) {
+            selector += themeConditionMap.get(theme.conditions[condition]);
+          }
+        }
+
         let rules =[{
           condition: '',
-          prelude: prelude + p,
+          prelude: selector + p,
           body
         }];
 
