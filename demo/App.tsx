@@ -12,7 +12,11 @@ export function App() {
       <div className={style({backgroundColor: 'red-700', paddingX: 8, padding: 2})()}>test</div>
       <div className={merge(style({backgroundColor: 'red-700', padding: 2}), style({paddingX: 8}))()}>test</div>
       <div className={merge(style({paddingX: 8}), style({backgroundColor: 'red-700', padding: 2}))()}>test</div> */}
-      <Checkbox>Test</Checkbox>
+      <Checkbox size="S">Test</Checkbox>
+      <Checkbox size="M">Test</Checkbox>
+      <Checkbox size="L">Test</Checkbox>
+      <Checkbox size="XL">Test</Checkbox>
+      <Checkbox isEmphasized>Test</Checkbox>
       <Checkbox isInvalid>Test</Checkbox>
       <Checkbox isIndeterminate>Test</Checkbox>
       <Checkbox isDisabled>Test</Checkbox>
@@ -74,138 +78,114 @@ const focusRing = style({
     default: 'none',
     isFocusVisible: 'solid'
   },
-  outlineColor: {
-    default: 'focus-ring',
-    // forcedColors: 'Highlight'
-  },
+  outlineColor: 'focus-ring',
   outlineWidth: 2,
   outlineOffset: 2
 });
 
-const box = merge<CheckboxRenderProps>(focusRing, style({
-  size: 5,
-  borderRadius: 'sm',
+interface CheckboxStyleProps {
+  size?: 'S' | 'M' | 'L' | 'XL',
+  isEmphasized?: boolean
+}
+
+const box = merge<CheckboxRenderProps & CheckboxStyleProps>(focusRing, style({
+  size: 'control-sm',
+  borderRadius: 'control-sm',
   flexShrink: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   borderWidth: 2,
+  boxSizing: 'border-box',
   borderStyle: 'solid',
   transition: 'default',
-  backgroundColor: {
-    default: 'gray-50',
-    // dark: 'zinc-900',
-    isSelected: '--color'
+  willChange: 'transform',
+  transform: {
+    isPressed: 'perspective(max(self(height), 24px)) translateZ(-2px)'
   },
-  borderColor: '--color',
-  '--color': {
-    type: 'backgroundColor',
-    value: {
+  backgroundColor: {
+    default: 'gray-25',
+    isSelected: {
       default: 'neutral',
+      isEmphasized: baseColor('accent-900'),
       forcedColors: 'Highlight',
       isInvalid: {
-        // default: 'negative',
-        ...baseColor('red-600'),
+        default: 'negative',
         forcedColors: 'Mark'
       },
       isDisabled: {
         default: 'disabled',
         forcedColors: 'GrayText'
       }
-      // default: 'gray-700',
-      // // dark: 'slate-300',
-      // forcedColors: 'Highlight',
-      // isPressed: {
-      //   default: 'gray-800',
-      //   // dark: 'slate-200',
-      //   forcedColors: 'Highlight'
-      // },
-      // isInvalid: {
-      //   default: 'red-700',
-      //   // dark: 'red-600',
-      //   forcedColors: 'Mark',
-      //   isPressed: {
-      //     default: 'red-800',
-      //     // dark: 'red-700',
-      //     forcedColors: 'Mark'
-      //   }
-      // },
-      // isDisabled: {
-      //   default: 'gray-200',
-      //   // dark: 'zinc-700',
-      //   forcedColors: 'GrayText'
-      // }
-      // default: {
-      //   default: 'gray-700',
-      //   isPressed: 'gray-800',
-      //   isInvalid: {
-      //     default: 'red-700',
-      //     isPressed: 'red-800'
-      //   },
-      //   isDisabled: 'gray-200'
-      // },
-      // dark: {
-      //   default: 'slate-300',
-      //   isPressed: 'slate-200',
-      //   isInvalid: {
-      //     default: 'red-600',
-      //     isPressed: 'red-700'
-      //   },
-      //   isDisabled: 'zinc-700'
-      // },
-      // forcedColors: {
-      //   default: 'Highlight',
-      //   isInvalid: 'Mark',
-      //   isDisabled: 'GrayText'
-      // }
     }
+  },
+  borderColor: {
+    default: baseColor('gray-800'),
+    forcedColors: 'ButtonBorder',
+    isInvalid: {
+      default: 'negative',
+      forcedColors: 'Mark'
+    },
+    isDisabled: {
+      default: 'disabled',
+      forcedColors: 'GrayText'
+    },
+    isSelected: 'transparent'
   }
 }));
 
 const iconStyles = style({
-  width: 4,
-  height: 4,
+  size: {
+    default: 2.5,
+    size: {
+      L: 3
+    }
+  },
   color: {
-    default: 'gray-50',
-    // dark: 'slate-900',
+    default: 'gray-25',
     forcedColors: 'HighlightText',
     isDisabled: {
       default: 'gray-400',
-      // dark: 'slate-600',
       forcedColors: 'GrayText'
     }
   }
 });
 
-function Checkbox(props: CheckboxProps) {
+function Checkbox(props: CheckboxProps & CheckboxStyleProps) {
   return (
     <RACCheckbox
       {...props}
-      className={style({
+      className={renderProps => style<CheckboxRenderProps & CheckboxStyleProps>({
         display: 'flex',
-        gap: 2,
+        columnGap: 'text-to-control',
         alignItems: 'center',
+        // height: 'control',
+        fontSize: 'control',
         transition: 'colors',
         color: {
-          // default: 'gray-800',
-          default: 'neutral-subdued',
-          // dark: 'zinc-200',
+          default: 'neutral',
           isDisabled: {
-            // default: 'gray-300',
             default: 'disabled',
-            // dark: 'zinc-600',
-            // forcedColors: 'GrayText'
+            forcedColors: 'GrayText'
           }
-        },
-        fontSize: 'base'
-      })}>
+        }
+      })({...renderProps, size: props.size || 'M'})}>
       {({isSelected, isIndeterminate, ...renderProps}) => (
         <>
-          <div className={box({isSelected: isSelected || isIndeterminate, isIndeterminate, ...renderProps})}>
+          <div className={box({isSelected: isSelected || isIndeterminate, isIndeterminate, size: props.size || 'M', isEmphasized: props.isEmphasized, ...renderProps})}>
             {isIndeterminate
               ? <Minus aria-hidden className={iconStyles(renderProps)} />
               : isSelected
-                ? <Check aria-hidden className={iconStyles(renderProps)} />
+                ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" fill="none" className={iconStyles({...renderProps, size: props.size || 'M'})}>
+                    <g clipPath="url(#clip0_18897_553)">
+                    <path d="M3.66706 9.07424C3.38239 9.07424 3.11237 8.94826 2.92976 8.72854L0.752512 6.11623C0.413152 5.709 0.467842 5.10353 0.875072 4.76467C1.28327 4.42678 1.88777 4.47951 2.22712 4.88772L3.64509 6.58889L7.75691 1.35549C8.08552 0.937519 8.68757 0.868189 9.10505 1.19338C9.52155 1.52053 9.59431 2.12404 9.26667 2.54104L4.42194 8.70706C4.24274 8.93558 3.97077 9.07034 3.68073 9.07425L3.66706 9.07424Z" fill="currentColor"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_18897_553">
+                    <rect width="10" height="10" fill="currentColor"/>
+                    </clipPath>
+                    </defs>
+                    </svg>
                 : null
             }
           </div>
@@ -235,26 +215,8 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   justifyContent: 'center',
   textAlign: 'start',
   columnGap: 'text-to-visual',
-  fontSize: {
-    size: {
-      S: 'sm',
-      M: 'base',
-      L: 'lg',
-      XL: 'xl'
-    }
-  },
-  '--height': {
-    type: 'height',
-    value: {
-      size: {
-        S: 6,
-        M: 8,
-        L: 10,
-        XL: 12
-      }
-    }
-  },
-  minHeight: '--height',
+  fontSize: 'control',
+  minHeight: 'control',
   borderRadius: 'pill',
   paddingX: {
     default: 'pill',
@@ -266,19 +228,19 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
   },
   transition: 'default',
   transform: {
-    isPressed: 'perspective(max(var(--height), 24px)) translateZ(-2px)'
+    isPressed: 'perspective(max(self(minHeight), 24px)) translateZ(-2px)'
   },
   borderStyle: 'solid',
-  '--border-width': {
-    type: 'borderWidth',
-    value: {
-      style: {
-        fill: 0,
-        outline: 2
-      }
+  borderWidth: {
+    style: {
+      fill: 0,
+      outline: 2
     }
   },
-  borderWidth: '--border-width',
+  '--labelPadding': {
+    type: 'paddingTop',
+    value: '[calc((self(minHeight) - 1lh) / 2 - self(borderWidth))]'
+  },
   borderColor: {
     variant: {
       primary: baseColor('gray-800'),
@@ -449,7 +411,7 @@ function Button(props: MyButtonProps) {
 }
 
 function ButtonLabel({children}) {
-  return <span className={style({paddingY: '[calc((var(--height) - 1lh) / 2 - var(--border-width))]'})()}>{children}</span>
+  return <span className={style({paddingY: '--labelPadding'})()}>{children}</span>
 }
 
 function ActionButton(props: RACButtonProps & {size: 'XS' | 'S' | 'M' | 'L' | 'XL'}) {
@@ -461,30 +423,10 @@ function ActionButton(props: RACButtonProps & {size: 'XS' | 'S' | 'M' | 'L' | 'X
         alignItems: 'center',
         justifyContent: 'center',
         columnGap: 'text-to-visual',
-        fontSize: {
-          size: {
-            XS: 'xs',
-            S: 'sm',
-            M: 'base',
-            L: 'lg',
-            XL: 'xl'
-          }
-        },
-        '--height': {
-          type: 'height',
-          value: {
-            size: {
-              XS: 5,
-              S: 6,
-              M: 8,
-              L: 10,
-              XL: 12
-            }
-          }
-        },
-        height: '--height',
+        fontSize: 'control',
+        height: 'control',
         transform: {
-          isPressed: 'perspective(max(var(--height), 24px)) translateZ(-2px)'
+          isPressed: 'perspective(max(self(height), 24px)) translateZ(-2px)'
         },
         transition: 'default',
         backgroundColor: baseColor('gray-100'),
@@ -492,7 +434,7 @@ function ActionButton(props: RACButtonProps & {size: 'XS' | 'S' | 'M' | 'L' | 'X
         borderStyle: 'none',
         paddingX: 'edge-to-text',
         paddingY: 0,
-        borderRadius: 'auto'
+        borderRadius: 'control'
       }))({...renderProps, size: props.size})} />
   );
 }

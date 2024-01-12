@@ -89,6 +89,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     return [k, createMappedProperty((value, p) => ({[p]: value}), v) as PropertyFunction<Value>];
   }));
 
+  let dependencies = new Set<string>();
   return function style(this: MacroContext | void, style) {
     // Declare layers for each condition in the theme ahead of time so the order is always correct.
     let css = '@layer ';
@@ -104,10 +105,13 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     css += ';\n\n';
 
     // Generate rules for each property.
-    let rules = new Map();
+    let rules = new Map<string, Rule[]>();
+    let values =  new Map();
+    dependencies.clear();
     for (let key in style) {
       let value = style[key]!;
       let themeProperty = key;
+      values.set(key, value);
 
       // Get the type of custom properties in the theme.
       if (key.startsWith('--')) {
@@ -118,12 +122,29 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
       // Expand shorthands to longhands so that merging works as expected.
       if (theme.shorthands[key]) {
         for (let prop of theme.shorthands[key]) {
+          values.set(prop, value);
           rules.set(prop, compileValue(prop, prop, value));
         }
       } else if (themeProperty in theme.properties) {
         rules.set(key, compileValue(key, themeProperty, value));
       }
     }
+
+    // For properties referenced by self(), rewrite the declarations to assign
+    // to an intermediary custom property so we can access the value.
+    for (let dep of dependencies) {
+      let value = values.get(dep);
+      if (value != null) {
+        if (!(dep in theme.properties)) {
+          throw new Error(`Unknown dependency ${dep}`);
+        }
+        let name = `--${themePropertyMap.get(dep)}`;
+        // Could potentially use @property to prevent the var from inheriting in children.
+        rules.set(name, compileValue(name, dep, value));
+        rules.set(dep, compileValue(dep, dep, name));
+      }
+    }
+    dependencies.clear();
 
     // Generate JS and CSS for each rule.
     let js = 'let rules = "";\n';
@@ -244,8 +265,16 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         let [obj, p] = value;
         let body = '';
         for (let key in obj) {
-          // @ts-ignore
-          body += `${kebab(key)}: ${obj[key]};`
+          let k = key as any
+          let value = obj[k];
+          if (typeof value === 'string') {
+            // Replace self() references with variables and track the dependencies.
+            value = value.replace(/self\(([a-zA-Z]+)/g, (_, v) => {
+              dependencies.add(v);
+              return `var(--${themePropertyMap.get(v)}`
+            });
+          }
+          body += `${kebab(key)}: ${value};`
         }
 
         let selector = prelude;

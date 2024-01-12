@@ -122,6 +122,7 @@ const baseSpacing = {
   3: '0.75rem', // 12px - spacing-200
   3.5: '0.875rem', // 14px
   4: '1rem', // 16px - spacing-300
+  4.5: '1.125rem', // 18px
   5: '1.25rem', // 20px
   6: '1.5rem', // 24px - spacing-400
   7: '1.75rem', // 28px
@@ -158,8 +159,8 @@ const spacing = {
     default: (6 / 14) + 'em', // -> 5px, 5px, 6px, 7px, 8px
     touch: (8 / 17) + 'em' // -> 6px, 7px, 8px, 9px, 10px, should be 7px, 7px, 8px, 9px, 11px
   },
-  'edge-to-text': 'calc(var(--height) * 3 / 8)',
-  'pill': 'calc(var(--height) / 2)'
+  'edge-to-text': 'calc(self(height, self(minHeight)) * 3 / 8)',
+  'pill': 'calc(self(height, self(minHeight)) / 2)'
 };
 
 const scaledSpacing: {[key in keyof typeof baseSpacing]: {default: string, touch: string}} = 
@@ -189,7 +190,27 @@ const sizing = {
   screen: '100vh',
   min: 'min-content',
   max: 'max-content',
-  fit: 'fit-content'
+  fit: 'fit-content',
+
+  control: {
+    default: scaledSpacing[8],
+    size: {
+      XS: scaledSpacing[5],
+      S: scaledSpacing[6],
+      L: scaledSpacing[10],
+      XL: scaledSpacing[12]
+    }
+  },
+  // With browser support for round() we could do this:
+  // 'control-sm': `round(${16 / 14}em, 2px)`
+  'control-sm': {
+    default: scaledSpacing[4],
+    size: {
+      S: scaledSpacing[3.5],
+      L: scaledSpacing[4.5],
+      XL: scaledSpacing[5]
+    }
+  }
 };
 
 const margin = {
@@ -223,8 +244,9 @@ const radius = {
   lg: '0.625rem', // 10px
   xl: '1rem', // 16px
   full: '9999px',
-  pill: 'calc(var(--height, 9999px) / 2)',
-  auto: 8 / 14 + 'em' // automatic based on font size (e.g. t-shirt size logarithmic scale)
+  pill: 'calc(self(height, self(minHeight, 9999px)) / 2)',
+  control: 8 / 14 + 'em', // automatic based on font size (e.g. t-shirt size logarithmic scale)
+  'control-sm': 4 / 14 + 'em'
 };
 
 type GridTrack = 'none' | 'subgrid' | (string & {}) | GridTrackSize[];
@@ -481,6 +503,16 @@ export const style = createTheme({
       xl: fontSizeToken(tokens['font-size-300']),
       '2xl': fontSizeToken(tokens['font-size-400']),
       '3xl': fontSizeToken(tokens['font-size-500']),
+
+      control: {
+        default: fontSizeToken(tokens['font-size-100']),
+        size: {
+          XS: fontSizeToken(tokens['font-size-50']),
+          S: fontSizeToken(tokens['font-size-75']),
+          L: fontSizeToken(tokens['font-size-200']),
+          XL: fontSizeToken(tokens['font-size-300'])
+        }
+      }
       // '3xl': '1.875rem', // 
       // '4xl': '2.25rem',
       // '5xl': '3rem',
