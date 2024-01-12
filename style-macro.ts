@@ -7,7 +7,7 @@ export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSPr
   };
 }
 
-export function createMappedProperty<T extends CSSValue>(fn: (value: string, property: string) => CSSProperties, values: PropertyValueMap<T> | string[]): PropertyFunction<Value> {
+export function createMappedProperty<T extends CSSValue>(fn: (value: string, property: string) => CSSProperties, values: PropertyValueMap<T> | string[]): PropertyFunction<T> {
   let valueMap = createValueLookup(Array.isArray(values) ? values : Object.values(values).flatMap((v: any) => typeof v === 'object' ? Object.values(v) : [v]));
 
   return (value, property) => {
@@ -86,7 +86,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     if (typeof v === 'function') {
       return [k, v];
     }
-    return [k, createMappedProperty((value, p) => ({[p]: value}), v)];
+    return [k, createMappedProperty((value, p) => ({[p]: value}), v) as PropertyFunction<Value>];
   }));
 
   return function style(this: MacroContext | void, style) {

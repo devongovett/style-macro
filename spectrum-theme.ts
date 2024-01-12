@@ -16,6 +16,17 @@ function weirdColorToken(token: typeof tokens['accent-background-color-default']
   };
 }
 
+function pxToRem(px: string) {
+  return parseFloat(px) / 16 + 'rem';
+}
+
+function fontSizeToken(token: typeof tokens['font-size-100']) {
+  return {
+    default: pxToRem(token.sets.desktop.value),
+    touch: pxToRem(token.sets.mobile.value)
+  };
+}
+
 type ReplaceColor<S extends string> = S extends `${infer S}-color-${infer N}` ? `${S}-${N}` : S;
 
 function colorScale<S extends string>(scale: S): Record<ReplaceColor<Extract<keyof typeof tokens, `${S}-${number}`>>, ReturnType<typeof colorToken>> {
@@ -104,29 +115,15 @@ const baseSpacing = {
   px: '1px',
   0: '0px',
   0.5: '0.125rem', // 2px - spacing-50
-  // 0.1875rem // 3px
-  1: '0.25rem', // 4px
-  // 0.3125rem // 5px
+  1: '0.25rem', // 4px - spacing-75
   1.5: '0.375rem', // 6px
-  // 0.4375rem // 7px
   2: '0.5rem', // 8px - spacing-100
-  // 0.5625rem // 9px
   2.5: '0.625rem', // 10px
-  // 0.6875rem // 11px
   3: '0.75rem', // 12px - spacing-200
-  // 0.8125rem // 13px
   3.5: '0.875rem', // 14px
-  // 0.9375rem // 15px
   4: '1rem', // 16px - spacing-300
-  // 1.0625rem // 17px
-  // 1.125rem // 18px
-  // 1.1875rem // 19px
   5: '1.25rem', // 20px
-  // 1.3125rem // 21px
-  // 1.375rem // 22px
-  // 1.4375rem // 23px
   6: '1.5rem', // 24px - spacing-400
-  // 1.5625rem // 25px
   7: '1.75rem', // 28px
   8: '2rem', // 32px - spacing-500
   9: '2.25rem', // 36px
@@ -152,28 +149,17 @@ const baseSpacing = {
   96: '24rem',
 };
 
-// const spacingAliases = {
-//   'spacing-50': baseSpacing[0.5],
-//   'spacing-75': baseSpacing[1],
-//   'spacing-100': baseSpacing[2],
-//   'spacing-200': baseSpacing[3],
-//   'spacing-300': baseSpacing[4],
-//   'spacing-400': baseSpacing[6],
-//   'spacing-500': baseSpacing[8],
-//   'spacing-600': baseSpacing[10],
-//   'spacing-700': baseSpacing[12],
-//   'spacing-800': baseSpacing[16],
-//   'spacing-900': baseSpacing[20],
-//   'spacing-1000': baseSpacing[24]
-// };
-
 const spacing = {
   ...baseSpacing,
-  // ...spacingAliases,
 
   // font-size relative values
   'text-to-control': (10 / 14) + 'em',
-  'text-to-visual': (6 / 14) + 'em' // was 8 / 14 in S1
+  'text-to-visual': {
+    default: (6 / 14) + 'em', // -> 5px, 5px, 6px, 7px, 8px
+    touch: (8 / 17) + 'em' // -> 6px, 7px, 8px, 9px, 10px, should be 7px, 7px, 8px, 9px, 11px
+  },
+  'edge-to-text': 'calc(var(--height) * 3 / 8)',
+  'pill': 'calc(var(--height) / 2)'
 };
 
 const scaledSpacing: {[key in keyof typeof baseSpacing]: {default: string, touch: string}} = 
@@ -201,9 +187,6 @@ const sizing = {
   '5/6': '83.333333%',
   full: '100%',
   screen: '100vh',
-  svh: '100svh',
-  lvh: '100lvh',
-  dvh: '100dvh',
   min: 'min-content',
   max: 'max-content',
   fit: 'fit-content'
@@ -231,23 +214,17 @@ const borderWidth = {
   1: '1px', // border-width-100
   2: '2px', // border-width-200
   4: '4px', // border-width-400
-  // 8: '8px',
-} as const;
+};
 
 const radius = {
   none: '0px',
-  // sm: '0.125rem', // corner-radius-75
-  // default: '0.25rem', // corner-radius-100
-  // md: '0.375rem',
-  // lg: '0.5rem', // corner-radius-200
-  // xl: '0.75rem',
-  // '2xl': '1rem',
-  // '3xl': '1.5rem',
   sm: '0.25rem', // 4px
   default: '0.5rem', // 8px
   lg: '0.625rem', // 10px
   xl: '1rem', // 16px
   full: '9999px',
+  pill: 'calc(var(--height, 9999px) / 2)',
+  auto: 8 / 14 + 'em' // automatic based on font size (e.g. t-shirt size logarithmic scale)
 };
 
 type GridTrack = 'none' | 'subgrid' | (string & {}) | GridTrackSize[];
@@ -265,6 +242,7 @@ let gridTrackSize = (value: GridTrackSize) => {
   return value in baseSpacing ? baseSpacing[value] : value
 };
 
+// TODO
 const transitionProperty = {
   default: 'color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, scale, filter, backdrop-filter',
   colors: 'color, background-color, border-color, text-decoration-color, fill, stroke',
@@ -275,6 +253,7 @@ const transitionProperty = {
   none: 'none',
 };
 
+// TODO
 const transitionTimingFunction = {
   default: 'cubic-bezier(0.4, 0, 0.2, 1)',
   linear: 'linear',
@@ -422,56 +401,15 @@ export const style = createTheme({
     columnGap: spacing,
     height: sizing,
     width: sizing,
-    minHeight: {
-      ...sizing,
-      full: '100%',
-      screen: '100vh',
-      svh: '100svh',
-      lvh: '100lvh',
-      dvh: '100dvh',
-      min: 'min-content',
-      max: 'max-content',
-      fit: 'fit-content',
-    },
+    minHeight: sizing,
     maxHeight: {
       ...sizing,
-      none: 'none',
-      full: '100%',
-      screen: '100vh',
-      svh: '100svh',
-      lvh: '100lvh',
-      dvh: '100dvh',
-      min: 'min-content',
-      max: 'max-content',
-      fit: 'fit-content',
+      none: 'none'
     },
-    minWidth: {
-      ...sizing,
-      full: '100%',
-      min: 'min-content',
-      max: 'max-content',
-      fit: 'fit-content'
-    },
+    minWidth: sizing,
     maxWidth: {
       ...sizing,
-      none: 'none',
-      xs: '20rem',
-      sm: '24rem',
-      md: '28rem',
-      lg: '32rem',
-      xl: '36rem',
-      '2xl': '42rem',
-      '3xl': '48rem',
-      '4xl': '56rem',
-      '5xl': '64rem',
-      '6xl': '72rem',
-      '7xl': '80rem',
-      full: '100%',
-      min: 'min-content',
-      max: 'max-content',
-      fit: 'fit-content',
-      prose: '65ch',
-      // breakpoints
+      none: 'none'
     },
     borderWidth,
     borderStartWidth: createMappedProperty(value => ({borderInlineStartWidth: value}), borderWidth),
@@ -515,6 +453,7 @@ export const style = createTheme({
     },
     rotate: createArbitraryProperty((value: number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn`) => ({rotate: typeof value === 'number' ? `${value}deg` : value})),
     scale: createArbitraryProperty((value: number) => ({scale: value})),
+    transform: createArbitraryProperty((value: string) => ({transform: value})),
     position: ['absolute', 'fixed', 'relative', 'sticky', 'static'] as const,
     insetStart: createMappedProperty(value => ({insetInlineStart: value}), inset),
     insetEnd: createMappedProperty(value => ({insetInlineEnd: value}), inset),
@@ -535,31 +474,13 @@ export const style = createTheme({
       mono: 'ui-monospace, Menlo, Monaco, Consalas, "Courier New", monospace'
     },
     fontSize: {
-      sm: {
-        default: '0.75rem', // 12px - font-size-75
-        touch: '0.9375rem' // 15px
-      },
-      base: {
-        default: '0.875rem', // 14px - font-size-100
-        touch: '1.0625rem' // 17px
-      },
-      lg: {
-        default: '1rem', // 16px - font-size-200
-        touch: '1.1875rem' // 19px
-      },
-      xl: {
-        default: '1.125rem', // 18px - font-size-300
-        touch: '1.375rem' // 22px
-      },
-      '2xl': {
-        default: '1.25rem', // 20px - font-size-400
-        touch: '1.5rem' // 24px
-      },
-      '3xl': {
-        default: '1.5625rem', // 25px - font-size-500
-        touch: '1.9375rem' // 31px
-      },
-      // font-size-600 = 1.75rem
+      xs: fontSizeToken(tokens['font-size-50']),
+      sm: fontSizeToken(tokens['font-size-75']),
+      base: fontSizeToken(tokens['font-size-100']),
+      lg: fontSizeToken(tokens['font-size-200']),
+      xl: fontSizeToken(tokens['font-size-300']),
+      '2xl': fontSizeToken(tokens['font-size-400']),
+      '3xl': fontSizeToken(tokens['font-size-500']),
       // '3xl': '1.875rem', // 
       // '4xl': '2.25rem',
       // '5xl': '3rem',
@@ -595,30 +516,8 @@ export const style = createTheme({
       black: '900'
     },
     fontStyle: ['normal', 'italic'] as const,
-    // fontVariantNumeric:
-    // letterSpacing: {
-    //   tighter: '-0.05em',
-    //   tight: '-0.025em',
-    //   normal: '0em',
-    //   wide: '0.025em',
-    //   wider: '0.05em',
-    //   widest: '0.1em',
-    // },
     lineHeight: {
-      // none: '1',
-      // tight: '1.25',
-      // snug: '1.375',
-      // normal: '1.5',
-      // relaxed: '1.625',
-      // loose: '2',
-      // 3: '.75rem',
-      // 4: '1rem',
-      // 5: '1.25rem',
-      // 6: '1.5rem',
-      // 7: '1.75rem',
-      // 8: '2rem',
-      // 9: '2.25rem',
-      // 10: '2.5rem',
+      // TODO: naming
       100: tokens['line-height-100'].value,
       200: tokens['line-height-200'].value,
     },
@@ -628,24 +527,6 @@ export const style = createTheme({
     textAlign: ['start', 'center', 'end', 'justify'] as const,
     verticalAlign: ['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super'] as const,
     textDecoration: ['underline', 'overline', 'line-through', 'none'] as const,
-    // textDecorationStyle: ['solid', 'double', 'dotted', 'dashed', 'wavy'] as const,
-    // textDecorationThickness: {
-    //   auto: 'auto',
-    //   'from-font': 'from-font',
-    //   0: '0px',
-    //   1: '1px',
-    //   2: '2px',
-    //   4: '4px',
-    //   8: '8px',
-    // },
-    // textUnderlineOffset: {
-    //   auto: 'auto',
-    //   0: '0px',
-    //   1: '1px',
-    //   2: '2px',
-    //   4: '4px',
-    //   8: '8px',
-    // },
     textOverflow: ['ellipsis', 'clip'] as const,
     truncate: createArbitraryProperty((_value: true) => ({
       overflow: 'hidden',
@@ -689,7 +570,6 @@ export const style = createTheme({
     backgroundBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'] as const,
     mixBlendMode: ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-darker', 'plus-lighter'] as const,
     opacity: createArbitraryProperty((value: number) => ({opacity: value})),
-    // filter, backdropFilter
 
     outlineStyle: ['none', 'solid', 'dashed', 'dotted', 'double'] as const,
     outlineOffset: borderWidth,
@@ -852,6 +732,7 @@ export const style = createTheme({
     // Windows tablet matches the same as iPhone. No difference when a mouse is connected.
     // Windows touch laptop matches same as macOS: (any-pointer: fine), (pointer: fine), (any-hover: hover), (hover: hover).
     touch: '@media not ((hover: hover) and (pointer: fine))',
+    // TODO
     sm: '@media (min-width: 640px)',
     md: '@media (min-width: 768px)',
     lg: '@media (min-width: 1024px)',

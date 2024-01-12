@@ -58,6 +58,11 @@ export function App() {
         <Button variant="secondary" style="outline" staticColor="black">Test</Button>
         <Button variant="secondary" style="outline" staticColor="black" isDisabled>Test</Button>
       </div>
+      <ActionButton size="XS"><Icon /> <ButtonLabel>Test</ButtonLabel></ActionButton>
+      <ActionButton size="S"><Icon /> <ButtonLabel>Test</ButtonLabel></ActionButton>
+      <ActionButton size="M"><Icon /> <ButtonLabel>Test</ButtonLabel></ActionButton>
+      <ActionButton size="L"><Icon /> <ButtonLabel>Test</ButtonLabel></ActionButton>
+      <ActionButton size="XL"><Icon /> <ButtonLabel>Test</ButtonLabel></ActionButton>
       <DateField />
       <SearchField />
     </div>
@@ -250,9 +255,9 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
     }
   },
   minHeight: '--height',
-  borderRadius: '[calc(var(--height) / 2)]',
+  borderRadius: 'pill',
   paddingX: {
-    default: '[calc(var(--height) / 2)]',
+    default: 'pill',
     isIconOnly: 0
   },
   paddingY: 0,
@@ -260,8 +265,8 @@ const button = merge(focusRing, style<ButtonRenderProps & ButtonStyleProps>({
     isIconOnly: 'square'
   },
   transition: 'default',
-  scale: {
-    isPressed: ((32 - 2) / 32)
+  transform: {
+    isPressed: 'perspective(max(var(--height), 24px)) translateZ(-2px)'
   },
   borderStyle: 'solid',
   '--border-width': {
@@ -447,6 +452,51 @@ function ButtonLabel({children}) {
   return <span className={style({paddingY: '[calc((var(--height) - 1lh) / 2 - var(--border-width))]'})()}>{children}</span>
 }
 
+function ActionButton(props: RACButtonProps & {size: 'XS' | 'S' | 'M' | 'L' | 'XL'}) {
+  return (
+    <RACButton
+      {...props}
+      className={renderProps => merge(focusRing, style({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        columnGap: 'text-to-visual',
+        fontSize: {
+          size: {
+            XS: 'xs',
+            S: 'sm',
+            M: 'base',
+            L: 'lg',
+            XL: 'xl'
+          }
+        },
+        '--height': {
+          type: 'height',
+          value: {
+            size: {
+              XS: 5,
+              S: 6,
+              M: 8,
+              L: 10,
+              XL: 12
+            }
+          }
+        },
+        height: '--height',
+        transform: {
+          isPressed: 'perspective(max(var(--height), 24px)) translateZ(-2px)'
+        },
+        transition: 'default',
+        backgroundColor: baseColor('gray-100'),
+        color: 'neutral',
+        borderStyle: 'none',
+        paddingX: 'edge-to-text',
+        paddingY: 0,
+        borderRadius: 'auto'
+      }))({...renderProps, size: props.size})} />
+  );
+}
+
 const fieldBorderStyles = style({
   borderColor: {
     default: {
@@ -603,8 +653,10 @@ function Input(props: InputProps) {
 function Icon() {
   return <div className={style({display: 'flex', alignItems: 'center', marginStart: '[calc(-2 / 14 * 1em)]'})() + ' ' + raw('&::before { content: "\u00a0"; width: 0; visibility: hidden } &:only-child { margin-inline-start: 0 }')}>
     <svg viewBox="0 0 20 20" fill="none" className={style({
-      width: '[round(calc(20 / 14 * 1em), 2px)]',
-      height: '[round(calc(20 / 14 * 1em), 2px)]',
+      // width: '[round(calc(20 / 14 * 1em), 2px)]',
+      // height: '[round(calc(20 / 14 * 1em), 2px)]',
+      width: '[calc(20 / 14 * 1em)]',
+      height: '[calc(20 / 14 * 1em)]',
       flexShrink: 0
     })()}>
     <path d="M18 4.25V15.75C18 16.9907 16.9907 18 15.75 18H4.25C3.00928 18 2 16.9907 2 15.75V4.25C2 3.00928 3.00928 2 4.25 2H15.75C16.9907 2 18 3.00928 18 4.25ZM16.5 4.25C16.5 3.83643 16.1636 3.5 15.75 3.5H4.25C3.83643 3.5 3.5 3.83643 3.5 4.25V15.75C3.5 16.1636 3.83643 16.5 4.25 16.5H15.75C16.1636 16.5 16.5 16.1636 16.5 15.75V4.25Z" fill="currentColor"/>
