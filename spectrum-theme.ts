@@ -1,4 +1,4 @@
-import { createColorProperty, createMappedProperty, createTheme, createArbitraryProperty } from './style-macro.ts';
+import {createColorProperty, createMappedProperty, createTheme, createArbitraryProperty} from './style-macro.ts';
 import type * as CSS from 'csstype';
 import tokens from '@adobe/spectrum-tokens/dist/json/variables.json';
 
@@ -93,7 +93,7 @@ const color = {
   Highlight: 'Highlight',
   HighlightText: 'HighlightText',
   GrayText: 'GrayText',
-  Mark: 'Mark',
+  Mark: 'Mark'
 };
 
 export function baseColor(base: keyof typeof color) {
@@ -147,7 +147,7 @@ const baseSpacing = {
   64: '16rem',
   72: '18rem',
   80: '20rem',
-  96: '24rem',
+  96: '24rem'
 };
 
 const spacing = {
@@ -165,7 +165,7 @@ const spacing = {
 
 const scaledSpacing: {[key in keyof typeof baseSpacing]: {default: string, touch: string}} = 
   Object.fromEntries(Object.entries(baseSpacing).map(([k, v]) => 
-    [k, {default: v, touch: parseFloat(v) * 1.25 + v.match(/[^0-9\.]+/)![0]}])
+    [k, {default: v, touch: parseFloat(v) * 1.25 + v.match(/[^0-9.]+/)![0]}])
   ) as any;
 
 const sizing = {
@@ -227,14 +227,14 @@ const inset = {
   '1/4': '25%',
   '2/4': '50%',
   '3/4': '75%',
-  full: '100%',
+  full: '100%'
 };
 
 const borderWidth = {
   0: '0px',
   1: '1px', // border-width-100
   2: '2px', // border-width-200
-  4: '4px', // border-width-400
+  4: '4px' // border-width-400
 };
 
 const radius = {
@@ -261,7 +261,7 @@ let gridTrack = (value: GridTrack) => {
 
 let gridTrackSize = (value: GridTrackSize) => {
   // @ts-ignore
-  return value in baseSpacing ? baseSpacing[value] : value
+  return value in baseSpacing ? baseSpacing[value] : value;
 };
 
 // TODO
@@ -272,7 +272,7 @@ const transitionProperty = {
   shadow: 'box-shadow',
   transform: 'transform',
   all: 'all',
-  none: 'none',
+  none: 'none'
 };
 
 // TODO
@@ -281,7 +281,7 @@ const transitionTimingFunction = {
   linear: 'linear',
   in: 'cubic-bezier(0.4, 0, 1, 1)',
   out: 'cubic-bezier(0, 0, 0.2, 1)',
-  'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+  'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)'
 };
 
 const colorWithAlpha = createColorProperty(color);
@@ -295,31 +295,31 @@ export const style = createTheme({
         ...colorToken(tokens['accent-content-color-default']),
         isHovered: colorToken(tokens['accent-content-color-hover']),
         isFocusVisible: colorToken(tokens['accent-content-color-key-focus']),
-        isPressed: colorToken(tokens['accent-content-color-down']),
+        isPressed: colorToken(tokens['accent-content-color-down'])
         // isSelected: colorToken(tokens['accent-content-color-selected']), // same as pressed
       },
       neutral: {
         ...colorToken(tokens['neutral-content-color-default']),
         isHovered: colorToken(tokens['neutral-content-color-hover']),
         isFocusVisible: colorToken(tokens['neutral-content-color-key-focus']),
-        isPressed: colorToken(tokens['neutral-content-color-down']),
+        isPressed: colorToken(tokens['neutral-content-color-down'])
         // isSelected: colorToken(tokens['neutral-subdued-content-color-selected']),
       },
       'neutral-subdued': {
         ...colorToken(tokens['neutral-subdued-content-color-default']),
         isHovered: colorToken(tokens['neutral-subdued-content-color-hover']),
         isFocusVisible: colorToken(tokens['neutral-subdued-content-color-key-focus']),
-        isPressed: colorToken(tokens['neutral-subdued-content-color-down']),
+        isPressed: colorToken(tokens['neutral-subdued-content-color-down'])
         // isSelected: colorToken(tokens['neutral-subdued-content-color-selected']),
       },
       negative: {
         ...colorToken(tokens['negative-content-color-default']),
         isHovered: colorToken(tokens['negative-content-color-hover']),
         isFocusVisible: colorToken(tokens['negative-content-color-key-focus']),
-        isPressed: colorToken(tokens['negative-content-color-down']),
+        isPressed: colorToken(tokens['negative-content-color-down'])
       },
       disabled: {
-        ...colorToken(tokens['disabled-content-color']),
+        ...colorToken(tokens['disabled-content-color'])
         // forcedColors: 'GrayText'
       }
     }),
@@ -329,37 +329,37 @@ export const style = createTheme({
         ...weirdColorToken(tokens['accent-background-color-default']),
         isHovered: weirdColorToken(tokens['accent-background-color-hover']),
         isFocusVisible: weirdColorToken(tokens['accent-background-color-key-focus']),
-        isPressed: weirdColorToken(tokens['accent-background-color-down']),
+        isPressed: weirdColorToken(tokens['accent-background-color-down'])
       },
       neutral: {
         ...colorToken(tokens['neutral-background-color-default']),
         isHovered: colorToken(tokens['neutral-background-color-hover']),
         isFocusVisible: colorToken(tokens['neutral-background-color-key-focus']),
-        isPressed: colorToken(tokens['neutral-background-color-down']),
+        isPressed: colorToken(tokens['neutral-background-color-down'])
       },
       'neutral-subdued': {
         ...weirdColorToken(tokens['neutral-subdued-background-color-default']),
         isHovered: weirdColorToken(tokens['neutral-subdued-background-color-hover']),
         isFocusVisible: weirdColorToken(tokens['neutral-subdued-background-color-key-focus']),
-        isPressed: weirdColorToken(tokens['neutral-subdued-background-color-down']),
+        isPressed: weirdColorToken(tokens['neutral-subdued-background-color-down'])
       },
       negative: {
         ...weirdColorToken(tokens['negative-background-color-default']),
         isHovered: weirdColorToken(tokens['negative-background-color-hover']),
         isFocusVisible: weirdColorToken(tokens['negative-background-color-key-focus']),
-        isPressed: weirdColorToken(tokens['negative-background-color-down']),
+        isPressed: weirdColorToken(tokens['negative-background-color-down'])
       },
       informative: {
         ...weirdColorToken(tokens['informative-background-color-default']),
         isHovered: weirdColorToken(tokens['informative-background-color-hover']),
         isFocusVisible: weirdColorToken(tokens['informative-background-color-key-focus']),
-        isPressed: weirdColorToken(tokens['informative-background-color-down']),
+        isPressed: weirdColorToken(tokens['informative-background-color-down'])
       },
       positive: {
         ...weirdColorToken(tokens['positive-background-color-default']),
         isHovered: weirdColorToken(tokens['positive-background-color-hover']),
         isFocusVisible: weirdColorToken(tokens['positive-background-color-key-focus']),
-        isPressed: weirdColorToken(tokens['positive-background-color-down']),
+        isPressed: weirdColorToken(tokens['positive-background-color-down'])
       },
       notice: weirdColorToken(tokens['notice-background-color-default']),
       gray: weirdColorToken(tokens['gray-background-color-default']),
@@ -377,7 +377,7 @@ export const style = createTheme({
       fuchsia: weirdColorToken(tokens['fuchsia-background-color-default']),
       magenta: weirdColorToken(tokens['magenta-background-color-default']),
       disabled: {
-        ...colorToken(tokens['disabled-background-color']),
+        ...colorToken(tokens['disabled-background-color'])
         // forcedColors: 'GrayText'
       }
     }),
@@ -387,10 +387,10 @@ export const style = createTheme({
         ...colorToken(tokens['negative-border-color-default']),
         isHovered: colorToken(tokens['negative-border-color-hover']),
         isFocusVisible: colorToken(tokens['negative-border-color-key-focus']),
-        isPressed: colorToken(tokens['negative-border-color-down']),
+        isPressed: colorToken(tokens['negative-border-color-down'])
       },
       disabled: {
-        ...colorToken(tokens['disabled-border-color']),
+        ...colorToken(tokens['disabled-border-color'])
         // forcedColors: 'GrayText'
       }
     }),
@@ -406,10 +406,12 @@ export const style = createTheme({
     caretColor: colorWithAlpha,
     fill: createColorProperty({
       none: 'none',
+      currentColor: 'currentColor',
       ...color
     }),
     stroke: createColorProperty({
       none: 'none',
+      currentColor: 'currentColor',
       ...color
     }),
 
@@ -444,7 +446,7 @@ export const style = createTheme({
     strokeWidth: {
       0: '0',
       1: '1',
-      2: '2',
+      2: '2'
     },
     marginStart: createMappedProperty(value => ({marginInlineStart: value}), margin),
     marginEnd: createMappedProperty(value => ({marginInlineEnd: value}), margin),
@@ -471,7 +473,7 @@ export const style = createTheme({
       '1/4': '25%',
       '2/4': '50%',
       '3/4': '75%',
-      full: '100%',
+      full: '100%'
     },
     rotate: createArbitraryProperty((value: number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn`) => ({rotate: typeof value === 'number' ? `${value}deg` : value})),
     scale: createArbitraryProperty((value: number) => ({scale: value})),
@@ -491,7 +493,7 @@ export const style = createTheme({
 
     // text
     fontFamily: {
-      sans: 'ui-sans-serif, system-ui, sans-serif',
+      sans: 'adobe-clown, ui-sans-serif, system-ui, sans-serif',
       serif: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
       mono: 'ui-monospace, Menlo, Monaco, Consalas, "Courier New", monospace'
     },
@@ -551,7 +553,7 @@ export const style = createTheme({
     lineHeight: {
       // TODO: naming
       100: tokens['line-height-100'].value,
-      200: tokens['line-height-200'].value,
+      200: tokens['line-height-200'].value
     },
     listStyleType: ['none', 'dist', 'decimal'] as const,
     listStylePosition: ['inside', 'outside'] as const,
@@ -560,6 +562,7 @@ export const style = createTheme({
     verticalAlign: ['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super'] as const,
     textDecoration: ['underline', 'overline', 'line-through', 'none'] as const,
     textOverflow: ['ellipsis', 'clip'] as const,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     truncate: createArbitraryProperty((_value: true) => ({
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -586,7 +589,7 @@ export const style = createTheme({
       xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
       '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
       inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-      none: 'none',
+      none: 'none'
     },
     borderTopStartRadius: createMappedProperty(value => ({borderStartStartRadius: value}), radius),
     borderTopEndRadius: createMappedProperty(value => ({borderStartEndRadius: value}), radius),
@@ -621,7 +624,7 @@ export const style = createTheme({
       300: '300ms',
       500: '500ms',
       700: '700ms',
-      1000: '1000ms',
+      1000: '1000ms'
     },
     transitionDuration: {
       0: '0s',
@@ -632,7 +635,7 @@ export const style = createTheme({
       300: '300ms',
       500: '500ms',
       700: '700ms',
-      1000: '1000ms',
+      1000: '1000ms'
     },
     transitionTimingFunction,
 
@@ -692,7 +695,7 @@ export const style = createTheme({
       '4xl': '56rem',
       '5xl': '64rem',
       '6xl': '72rem',
-      '7xl': '80rem',
+      '7xl': '80rem'
     },
     breakBefore: ['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column'] as const,
     breakInside: ['auto', 'avoid', 'avoid-page', 'avoid-column'] as const,
@@ -719,7 +722,7 @@ export const style = createTheme({
     objectFit: ['contain', 'cover', 'fill', 'none', 'scale-down'] as const,
     objectPosition: ['bottom', 'center', 'left', 'left bottom', 'left top', 'right', 'right bottom', 'right top', 'top'] as const,
     willChange: ['auto', 'scroll-position', 'contents', 'transform'] as const,
-    zIndex: createArbitraryProperty((value: number) => ({zIndex: value})),
+    zIndex: createArbitraryProperty((value: number) => ({zIndex: value}))
   },
   shorthands: {
     padding: ['paddingTop', 'paddingBottom', 'paddingStart', 'paddingEnd'] as const,

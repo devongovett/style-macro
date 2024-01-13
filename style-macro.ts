@@ -1,4 +1,4 @@
-import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, VariantMap, StyleFunction, StyleValue, ThemeProperties, PropertyValueDefinition, CustomValue} from './types';
+import type {Value, CSSValue, CSSProperties, PropertyFunction, PropertyValueMap, Theme, Condition, StyleFunction, StyleValue, ThemeProperties, PropertyValueDefinition, CustomValue} from './types';
 
 export function createArbitraryProperty<T extends Value>(fn: (value: T) => CSSProperties): PropertyFunction<T> {
   return (value) => {
@@ -166,7 +166,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
     }
 
     return new Function('props', js) as any;
-  }
+  };
 
   function compileValue(property: string, themeProperty: string, value: StyleValue<Value, Condition<T>, any>) {
     return conditionalToRules(value as PropertyValueDefinition<Value>, new Set(), new Set(), (value, conditions, skipConditions) => {
@@ -265,16 +265,16 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
         let [obj, p] = value;
         let body = '';
         for (let key in obj) {
-          let k = key as any
+          let k = key as any;
           let value = obj[k];
           if (typeof value === 'string') {
             // Replace self() references with variables and track the dependencies.
             value = value.replace(/self\(([a-zA-Z]+)/g, (_, v) => {
               dependencies.add(v);
-              return `var(--${themePropertyMap.get(v)}`
+              return `var(--${themePropertyMap.get(v)}`;
             });
           }
-          body += `${kebab(key)}: ${value};`
+          body += `${kebab(key)}: ${value};`;
         }
 
         let selector = prelude;
@@ -284,7 +284,7 @@ export function createTheme<T extends Theme>(theme: T): StyleFunction<ThemePrope
           }
         }
 
-        let rules =[{
+        let rules = [{
           condition: '',
           prelude: selector + p,
           body
@@ -367,7 +367,7 @@ function hash(v: string) {
 
 function printRule(rule: Rule, printedRules: Set<string>, indent = ''): string {
   if (!rule.prelude && typeof rule.body !== 'string') {
-    return rule.body.map(b => printRule(b, printedRules, indent)).join('\n\n')
+    return rule.body.map(b => printRule(b, printedRules, indent)).join('\n\n');
   }
 
   if (typeof rule.body === 'string') {

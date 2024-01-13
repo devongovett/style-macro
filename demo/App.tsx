@@ -110,7 +110,7 @@ const box = merge<CheckboxRenderProps & CheckboxStyleProps>(focusRing, style({
       isEmphasized: baseColor('accent-900'),
       forcedColors: 'Highlight',
       isInvalid: {
-        default: 'negative',
+        default: baseColor('negative-900'),
         forcedColors: 'Mark'
       },
       isDisabled: {
@@ -138,7 +138,7 @@ const iconStyles = style({
   size: {
     default: 2.5,
     size: {
-      L: 3
+      XL: 3
     }
   },
   color: {

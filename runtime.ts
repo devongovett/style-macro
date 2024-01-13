@@ -52,9 +52,7 @@ function parse(s: string) {
 
     // read conditions (up to the last segment)
     let condition = i;
-    let value = i;
     while (i < s.length && s[i] !== ' ') {
-      value = i;
       readValue();
     }
 
